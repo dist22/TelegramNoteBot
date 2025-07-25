@@ -15,6 +15,10 @@ public class NoteService(AppDbContext dbContext, ILogger<NoteService> logger)
         logger.LogInformation("Note added");
     }
 
+    public async Task<Note?> GetNote(long userId, int noteId) 
+        => await _dbSet.FirstOrDefaultAsync(n => n.UserId == userId && n.Id == noteId);
+
+
     public async Task<List<Note>> GetNotes(long userId)
     {
         logger.LogInformation("GetNotes");
