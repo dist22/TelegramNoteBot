@@ -33,6 +33,32 @@ public class Worker(ILogger<Worker> logger, IConfiguration configuration, IServi
         using var scope = serviceScopeFactory.CreateScope();
         var noteService = scope.ServiceProvider.GetRequiredService<NoteService>();
 
+        if (update.CallbackQuery is { Data : var data, From : var callbackUser } callback)
+        {
+            var callbackChatId = callback.Message.Chat.Id;
+            var messageId = callback.Message.MessageId;
+
+            if (data.StartsWith("del_") && int.TryParse(data[4..], out var noteIdToDelete))
+            {
+                var result = await noteService.DeleteNote(callbackUser.Id, noteIdToDelete);
+                if (result)
+                    await client.EditMessageText(callbackChatId, messageId, "Note deleted", replyMarkup: GetMarkupBack(), cancellationToken: cts);
+                else await client.SendMessage(callbackChatId, "Can`t delete the note 😢", cancellationToken: cts);
+            }
+            else if (data.StartsWith("inf_") && int.TryParse(data[4..], out var noteIdToShow))
+            {
+                var note = await noteService.GetNote(callbackUser.Id, noteIdToShow);
+                await client.EditMessageText(callbackChatId, messageId, note.Text, replyMarkup: GetMarkupBack(), cancellationToken: cts);
+            }
+        }
+
+        if (update.Message is not { Text: { } text } message) return;
+
+        var user = message.From;
+        var chatId = message.Chat.Id;
+        var state = _userSessionService.GetOrCreate(user.Id);
+
+
         if (text == "/start")
         {
             var menu = new ReplyKeyboardMarkup(new[]
