@@ -121,4 +121,18 @@ public class Worker(ILogger<Worker> logger, IConfiguration configuration, IServi
         logger.LogError($"Exception : {ex.Message}");
         return Task.CompletedTask;
     }
+
+    private InlineKeyboardMarkup GetMarkupFromData(List<Note> notes, string emoji, string cod)
+        => new InlineKeyboardMarkup(notes.Select(n => new[]
+            {
+                InlineKeyboardButton.WithCallbackData($"{emoji} {n.Title}", $"{cod}{n.Id}")
+            })
+            .ToArray()
+        );
+
+    private InlineKeyboardMarkup GetMarkupBack()
+        => new InlineKeyboardMarkup(new[]
+        {
+            InlineKeyboardButton.WithCallbackData("⬅️BACK", "some")
+        });
 }
