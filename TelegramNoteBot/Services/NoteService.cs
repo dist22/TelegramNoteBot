@@ -8,9 +8,17 @@ public class NoteService(AppDbContext dbContext, ILogger<NoteService> logger)
 {
     private readonly DbSet<Note> _dbSet = dbContext.Set<Note>();
 
-    public async Task AddNote(string text, long userId)
+    public async Task AddNote(long userId, string userName, string noteTile, string noteText)
     {
-        await  _dbSet.AddAsync(new Note {UserId = userId, Text = text});
+        
+        
+        await  _dbSet.AddAsync(new Note
+        {
+            UserId = userId,
+            UserName = userName,
+            Title = noteTile,
+            Text = noteText,
+        });
         await dbContext.SaveChangesAsync();
         logger.LogInformation("Note added");
     }
