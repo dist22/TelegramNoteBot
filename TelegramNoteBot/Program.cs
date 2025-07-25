@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using TelegramNoteBot;
 using TelegramNoteBot.Data;
 using TelegramNoteBot.Services;
+using TelegramNoteBot.UserSessionService;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -13,6 +14,7 @@ builder.Services.AddDbContext<AppDbContext>(cfg =>
 });
 
 builder.Services.AddScoped<NoteService>();
+builder.Services.AddSingleton<UserSessionService>();
 
 var host = builder.Build();
 

@@ -141,3 +141,4 @@ D:\C#Projects\TelegramNoteBot\TelegramNoteBot\bin\Debug\net8.0\Microsoft.Extensi
 D:\C#Projects\TelegramNoteBot\TelegramNoteBot\bin\Debug\net8.0\Microsoft.Extensions.FileSystemGlobbing.dll
 D:\C#Projects\TelegramNoteBot\TelegramNoteBot\bin\Debug\net8.0\Microsoft.Extensions.Options.ConfigurationExtensions.dll
 D:\C#Projects\TelegramNoteBot\TelegramNoteBot\bin\Debug\net8.0\runtimes\win\lib\net8.0\System.Diagnostics.EventLog.Messages.dll
+D:\C#Projects\TelegramNoteBot\TelegramNoteBot\obj\Debug\net8.0\TelegramNoteBot.sourcelink.json
