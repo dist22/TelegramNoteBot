@@ -18,9 +18,10 @@ public class BotUpdateHandler
         using var  scope = _scopeFactory.CreateScope();
         var noteService = scope.ServiceProvider.GetRequiredService<NoteService>();
         var userSession = scope.ServiceProvider.GetRequiredService<UserSessionService>();
+        var noteDisplayService = scope.ServiceProvider.GetRequiredService<NoteDisplayService>();
         
-        var callbackHandler = new CallbackHandler(noteService);
-        var messageHandler = new MessageHandler(noteService, userSession);
+        var callbackHandler = new CallbackHandler(noteService, userSession);
+        var messageHandler = new MessageHandler(noteService, userSession, noteDisplayService);
         
         if (update.CallbackQuery is not null)
             await callbackHandler.HandleUpdateAsync(client, update.CallbackQuery, cts);

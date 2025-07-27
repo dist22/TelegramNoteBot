@@ -3,10 +3,11 @@ using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using TelegramNoteBot.Constants;
 using TelegramNoteBot.Services;
+using TelegramNoteBot.Enums;
 
 namespace TelegramNoteBot.Bot;
 
-public class MessageHandler(NoteService noteService, UserSessionService userSessionService)
+public class MessageHandler(NoteService noteService, UserSessionService userSessionService, NoteDisplayService noteDisplayService)
 {
     public async Task HandleUpdateAsync(ITelegramBotClient client, Message message, CancellationToken cts)
     {
@@ -23,66 +24,67 @@ public class MessageHandler(NoteService noteService, UserSessionService userSess
                 await client.SendMessage(chatId, "WELCOME", replyMarkup: ReplyMarkupBuilder.MainMenu(), cancellationToken: cts);
                 break;
             case BotCommands.AddNote:
-                state.PendingTitle = null;
+                state.State = BotUserState.EnteringNoteTitle;
                 await client.SendMessage(chatId, "Enter note title: ", cancellationToken: cts);
                 break;
             case BotCommands.MyNotes:
-                await SendNotesListAsync(client, user,chatId,  "➕", CallBackCommands.Info, cts);
+                await noteDisplayService.SendNotesListAsync(client, user, chatId, BotCommandEmojis.I, CallBackCommands.Info, cts);
                 break;
             case BotCommands.SearchNote:
-                state.IsSearching = true;
+                state.State = BotUserState.EnteringSearchingQuery;
                 await client.SendMessage(chatId, "🔍 Enter search query:", cancellationToken: cts);
                 break;
             case BotCommands.DeleteNote:
-                await SendNotesListAsync(client, user,chatId,  "❌", CallBackCommands.Delete, cts);
+                await noteDisplayService.SendNotesListAsync(client,user, chatId, BotCommandEmojis.X, CallBackCommands.Delete, cts);
                 break;
+            
+            case BotCommands.FilterByTag:
+                break;
+            
+            case BotCommands.ManageTags:
+                await client.SendMessage(chatId, "Tag management menu:", replyMarkup: ReplyMarkupBuilder.TagManagementMenu(),  cancellationToken: cts);
+                break;
+            
             case BotCommands.AboutDeveloper:
                 await client.SendMessage(chatId, "Tg NoteBot v.01.2", ParseMode.Html, protectContent: true,
                     replyMarkup: ReplyMarkupBuilder.AboutDeveloper(), cancellationToken: cts);
                 break;
             default:
-                if (state.PendingTitle == null)
-                {
-                    state.PendingTitle = text;
-                    await client.SendMessage(chatId, "Enter the note text", cancellationToken: cts);
-                }
-                else if (state.IsSearching)
-                {
-                    var notesList = await noteService.SearchNotes(user.Id, text.Trim());
-                    if (!notesList.Any())
-                    {
-                        await client.SendMessage(chatId, "Empty", cancellationToken: cts);
-                    }
-                    var answer = $"🔍 Found {notesList.Count} note(s) for \"{text}\":";
-                    await client.SendMessage(chatId, answer, replyMarkup: ReplyMarkupBuilder.NotesMarkup(notesList,"➕", CallBackCommands.Info),
-                        cancellationToken: cts);
-                    
-                }
-                else
-                {
-                    var title = state.PendingTitle;
-                    await noteService.AddNote(user.Id, user.Username, title, text);
-
-                    userSessionService.Clear(user.Id);
-                    await client.SendMessage(chatId, "Note added", cancellationToken: cts);
-                }
+                await HandleTextInputAsync(client, user, chatId, text, state, userSessionService, cts);
                 break;
-
         }
 
     }
 
-    private async Task SendNotesListAsync(ITelegramBotClient client, User user, long chatId, string emoji,
-        string callBackCommand, CancellationToken cts)
+    private async Task HandleTextInputAsync(ITelegramBotClient client, User user, long chatId, string text, UserNoteState state, UserSessionService sessionService,
+        CancellationToken cts)
     {
-        var notes = await noteService.GetNotes(user.Id);
-        if (!notes.Any())
+
+        switch (state.State)
         {
-            await client.SendMessage(chatId, "Sorry, no notes found.", cancellationToken: cts);
-            return;
+            case BotUserState.EnteringNoteTitle:
+                state.PendingTitle = text;
+                await client.SendMessage(chatId, "Enter the note text", cancellationToken: cts);
+                state.State = BotUserState.EnteringNoteText;
+                break;
+            
+            case BotUserState.EnteringNoteText:
+                var title =  state.PendingTitle;
+                await noteService.AddNote(user.Id, user.Username, title, text);
+                sessionService.Clear(user.Id);
+                await client.SendMessage(chatId, "Note added", cancellationToken: cts);
+                break;
+            
+            case BotUserState.EnteringSearchingQuery:
+                await noteDisplayService.SendSearchedNoteListAsync(client, user, chatId, BotCommandEmojis.I, CallBackCommands.Info, cts);
+                sessionService.Clear(user.Id);
+                break;
+            
+            case BotUserState.None:
+                await client.SendMessage(chatId, "Unknow command", replyMarkup: ReplyMarkupBuilder.MainMenu(),
+                    cancellationToken: cts);
+                break;
         }
-        await client.SendMessage(chatId, "Notes: ", 
-            replyMarkup: ReplyMarkupBuilder.NotesMarkup(notes,emoji, callBackCommand ), 
-            cancellationToken: cts);
     }
+
 }
