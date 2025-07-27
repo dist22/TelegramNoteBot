@@ -1,9 +1,8 @@
-namespace TelegramNoteBot.UserSessionService;
-
-
+namespace TelegramNoteBot.Services;
 public class UserNoteState
 {
     public string? PendingTitle { get; set; }
+    public bool IsSearching { get; set; }
 }
 
 public class UserSessionService
