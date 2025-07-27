@@ -1,8 +1,12 @@
+using TelegramNoteBot.Enums;
+
 namespace TelegramNoteBot.Services;
+
 public class UserNoteState
 {
-    public string? PendingTitle { get; set; }
-    public bool IsSearching { get; set; }
+    public string? PendingTitle { get; set; } = string.Empty;
+    public BotUserState State { get; set; } = BotUserState.None;
+    
 }
 
 public class UserSessionService

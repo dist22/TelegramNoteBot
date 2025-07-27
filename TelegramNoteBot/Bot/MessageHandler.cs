@@ -46,7 +46,7 @@ public class MessageHandler(NoteService noteService, UserSessionService userSess
                 break;
             
             case BotCommands.AboutDeveloper:
-                await client.SendMessage(chatId, "Tg NoteBot v.01.2", ParseMode.Html, protectContent: true,
+                await client.SendMessage(chatId, "Tg NoteBot v.01.3", ParseMode.Html, protectContent: true,
                     replyMarkup: ReplyMarkupBuilder.AboutDeveloper(), cancellationToken: cts);
                 break;
             default:

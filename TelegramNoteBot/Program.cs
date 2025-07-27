@@ -17,6 +17,7 @@ builder.Services.AddScoped<CallbackHandler>();
 builder.Services.AddScoped<MessageHandler>();
 builder.Services.AddSingleton<UserSessionService>();
 builder.Services.AddSingleton<BotUpdateHandler>();
+builder.Services.AddScoped<NoteDisplayService>();
 builder.Services.AddHostedService<Worker>();
 
 var host = builder.Build();
