@@ -36,6 +36,16 @@ public class NoteService(AppDbContext dbContext, ILogger<NoteService> logger)
             .ToListAsync();
     }
 
+    public async Task<List<Note>> SearchNotes(long userId, string searchQuery)
+    {
+        var allNotes = await GetNotes(userId);
+        return allNotes
+            .Where(n =>
+                n.Title.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                n.Text.Contains(searchQuery, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+    }
+
     public async Task<bool> DeleteNote(long userId, int noteId)
     {
         logger.LogInformation("started delete note");
