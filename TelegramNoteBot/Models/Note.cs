@@ -11,4 +11,6 @@ public class Note
     public string Text { get; set; } = string.Empty;
     
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow ;
+
+    public List<NoteTag> NoteTags { get; set; } = new();
 }
