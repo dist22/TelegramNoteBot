@@ -4,29 +4,22 @@ using TelegramNoteBot.Services;
 
 namespace TelegramNoteBot.Bot;
 
-public class BotUpdateHandler
+public class BotUpdateHandler(IServiceScopeFactory scopeFactory)
 {
-    private readonly IServiceScopeFactory _scopeFactory;
-
-    public BotUpdateHandler(IServiceScopeFactory scopeFactory)
-    {
-        _scopeFactory = scopeFactory;
-    }
-    
     public async Task HandleUpdateAsync(ITelegramBotClient client, Update update, CancellationToken cts)
     {
-        using var  scope = _scopeFactory.CreateScope();
+        using var  scope = scopeFactory.CreateScope();
         var noteService = scope.ServiceProvider.GetRequiredService<NoteService>();
         var userSession = scope.ServiceProvider.GetRequiredService<UserSessionService>();
         var noteDisplayService = scope.ServiceProvider.GetRequiredService<NoteDisplayService>();
+        var tagService = scope.ServiceProvider.GetRequiredService<TagService>();
         
         var callbackHandler = new CallbackHandler(noteService, userSession);
-        var messageHandler = new MessageHandler(noteService, userSession, noteDisplayService);
+        var messageHandler = new MessageHandler(noteService, userSession, tagService, noteDisplayService);
         
         if (update.CallbackQuery is not null)
             await callbackHandler.HandleUpdateAsync(client, update.CallbackQuery, cts);
         else if (update.Message is not null)
             await messageHandler.HandleUpdateAsync(client, update.Message, cts);
     }
-
 }

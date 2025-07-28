@@ -7,7 +7,7 @@ using TelegramNoteBot.Enums;
 
 namespace TelegramNoteBot.Bot;
 
-public class MessageHandler(NoteService noteService, UserSessionService userSessionService, NoteDisplayService noteDisplayService)
+public class MessageHandler(NoteService noteService, UserSessionService userSessionService, TagService tagService, NoteDisplayService noteDisplayService)
 {
     public async Task HandleUpdateAsync(ITelegramBotClient client, Message message, CancellationToken cts)
     {
@@ -16,6 +16,12 @@ public class MessageHandler(NoteService noteService, UserSessionService userSess
         var user = message.From;
         var chatId = message.Chat.Id;
         var state = userSessionService.GetOrCreate(user.Id);
+
+        if (state.State == BotUserState.TagManagement || BotUserState.AddingTag == state.State)
+        {
+            await HandleTagCommandAsync(client, chatId, text, state, cts);
+            return;
+        }
 
 
         switch (text)
@@ -42,6 +48,7 @@ public class MessageHandler(NoteService noteService, UserSessionService userSess
                 break;
             
             case BotCommands.ManageTags:
+                state.State = BotUserState.TagManagement;
                 await client.SendMessage(chatId, "Tag management menu:", replyMarkup: ReplyMarkupBuilder.TagManagementMenu(),  cancellationToken: cts);
                 break;
             
@@ -53,13 +60,11 @@ public class MessageHandler(NoteService noteService, UserSessionService userSess
                 await HandleTextInputAsync(client, user, chatId, text, state, userSessionService, cts);
                 break;
         }
-
     }
 
     private async Task HandleTextInputAsync(ITelegramBotClient client, User user, long chatId, string text, UserNoteState state, UserSessionService sessionService,
         CancellationToken cts)
     {
-
         switch (state.State)
         {
             case BotUserState.EnteringNoteTitle:
@@ -76,13 +81,57 @@ public class MessageHandler(NoteService noteService, UserSessionService userSess
                 break;
             
             case BotUserState.EnteringSearchingQuery:
-                await noteDisplayService.SendSearchedNoteListAsync(client, user, chatId, BotCommandEmojis.I, CallBackCommands.Info, cts);
+                await noteDisplayService.SendSearchedNoteListAsync(client, user, chatId, text,  cts);
                 sessionService.Clear(user.Id);
                 break;
             
             case BotUserState.None:
                 await client.SendMessage(chatId, "Unknow command", replyMarkup: ReplyMarkupBuilder.MainMenu(),
                     cancellationToken: cts);
+                break;
+        }
+    }
+
+    private async Task HandleTagCommandAsync(ITelegramBotClient client, long chatId,string text, UserNoteState state, CancellationToken cts)
+    {
+        switch (text)
+        {
+            case BotTagCommands.AddTags:
+                state.State = BotUserState.AddingTag;
+                await client.SendMessage(chatId, "Enter tag name, he must started with #", cancellationToken: cts);
+                break;
+            case BotTagCommands.RemoveTags:
+                break;
+            case BotTagCommands.Tags:
+                break;
+            case BotTagCommands.Back:
+                await client.SendMessage(chatId, "Main menu", replyMarkup: ReplyMarkupBuilder.MainMenu(), cancellationToken: cts);
+                state.State = BotUserState.None;
+                break;
+            default:
+                await HandleTagTextInputCommand(client, chatId, text, state, cts);
+                break;
+        }
+    }
+
+    private async Task HandleTagTextInputCommand(ITelegramBotClient client, long chatId, string text, UserNoteState state, CancellationToken cts)
+    {
+        switch (state.State)
+        {
+            
+            case BotUserState.GetingTags:
+                var tags = tagService.GetAllAsync();
+                break;
+            
+            case BotUserState.AddingTag:
+                if (!text.StartsWith("#"))
+                {
+                    await client.SendMessage(chatId, "Uncorrected tag, try again", cancellationToken: cts);
+                    break;
+                }
+                await tagService.AddTag(text);
+                await client.SendMessage(chatId, "Tag added", cancellationToken: cts);
+                state.State = BotUserState.TagManagement;
                 break;
         }
     }

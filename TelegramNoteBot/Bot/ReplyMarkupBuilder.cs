@@ -16,8 +16,8 @@ public static class ReplyMarkupBuilder
 
     public static ReplyKeyboardMarkup TagManagementMenu()
         => new([
-            [new KeyboardButton(BotTagCommands.Tsgs), new KeyboardButton(BotTagCommands.AddTsgs)],
-            [new KeyboardButton(BotTagCommands.RemoveTags), new KeyboardButton("⬅️ Back")]
+            [new KeyboardButton(BotTagCommands.Tags), new KeyboardButton(BotTagCommands.AddTags)],
+            [new KeyboardButton(BotTagCommands.RemoveTags), new KeyboardButton(BotTagCommands.Back)]
         ]) { ResizeKeyboard = true };
     
     public static InlineKeyboardMarkup NotesMarkup(IEnumerable<Note> notes, string emoji, string callBackData) 
