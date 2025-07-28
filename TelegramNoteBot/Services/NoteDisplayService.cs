@@ -21,7 +21,7 @@ public class NoteDisplayService(NoteService noteService)
             cancellationToken: cts);
     }
 
-    public async Task SendSearchedNoteListAsync(ITelegramBotClient client, User user, long chatId, string text, string emoji, CancellationToken cts)
+    public async Task SendSearchedNoteListAsync(ITelegramBotClient client, User user, long chatId, string text,CancellationToken cts)
     {
         var notesList = await noteService.SearchNotes(user.Id, text.Trim());
         if (!notesList.Any())
@@ -30,7 +30,7 @@ public class NoteDisplayService(NoteService noteService)
             return;
         }
         var answer = $"🔍 Found {notesList.Count} note(s) for \"{text}\":";
-        await client.SendMessage(chatId, answer, replyMarkup: ReplyMarkupBuilder.NotesMarkup(notesList,"➕", CallBackCommands.Info),
+        await client.SendMessage(chatId, answer, replyMarkup: ReplyMarkupBuilder.NotesMarkup(notesList,BotCommandEmojis.I, CallBackCommands.Info),
             cancellationToken: cts);
     }
 }
