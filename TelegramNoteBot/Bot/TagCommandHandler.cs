@@ -31,7 +31,7 @@ public class TagCommandHandler(TagService tagService, UserSessionService userSes
                 }
                 var mesText = "You Tags";
                 await client.SendMessage(chatId, mesText,
-                    replyMarkup: ReplyMarkupBuilder.TagMarkup(tags, BotCommandEmojis.X, "no"), cancellationToken: cts);
+                    replyMarkup: ReplyMarkupBuilder.TagMarkup(tags, BotCommandEmojis.X, CallBackCommands.TagDelete), cancellationToken: cts);
                 break;
             case BotTagCommands.Back:
                 await client.SendMessage(chatId, "🔙 Returned to main menu", replyMarkup: ReplyMarkupBuilder.MainMenu(), cancellationToken: cts);

@@ -6,7 +6,7 @@ using TelegramNoteBot.Services;
 
 namespace TelegramNoteBot.Bot;
 
-public class CallbackHandler(NoteService noteService, UserSessionService userSessionService)
+public class CallbackHandler(NoteService noteService, UserSessionService userSessionService, TagService tagService)
 {
     public async Task HandleUpdateAsync(ITelegramBotClient client, CallbackQuery callbackQuery, CancellationToken cts)
     {
@@ -15,6 +15,7 @@ public class CallbackHandler(NoteService noteService, UserSessionService userSes
         var user = callbackQuery.From;
         var data = callbackQuery.Data;
         var state = userSessionService.GetOrCreate(user.Id);
+        
         
         if(data.StartsWith(CallBackCommands.Delete) && int.TryParse(data[4..], out var noteIdToDelete))
         {
@@ -31,6 +32,12 @@ public class CallbackHandler(NoteService noteService, UserSessionService userSes
             var note = await noteService.GetNote(user.Id, noteIdToShow);
             await client.DeleteMessage(chatId, messageId, cancellationToken: cts);
             await client.SendMessage(chatId, note.Text, cancellationToken: cts);
+        }
+        else if (data.StartsWith(CallBackCommands.TagDelete) && int.TryParse(data[4..], out var tagIdToDelete))
+        {
+            var tag = await tagService.DeleteTag(tagIdToDelete);
+            var message = tag ? "Tag successfully deleted" : "Tag deleted";
+            await client.SendMessage(chatId, message, cancellationToken: cts);
         }
     }
     

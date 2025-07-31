@@ -14,8 +14,9 @@ public class BotUpdateHandler(IServiceScopeFactory scopeFactory)
         var userSession = scope.ServiceProvider.GetRequiredService<UserSessionService>();
         var noteDisplayService = scope.ServiceProvider.GetRequiredService<NoteDisplayService>();
         var tagHandler = scope.ServiceProvider.GetRequiredService<TagCommandHandler>();
+        var tagService = scope.ServiceProvider.GetRequiredService<TagService>();
         
-        var callbackHandler = new CallbackHandler(noteService, userSession);
+        var callbackHandler = new CallbackHandler(noteService, userSession, tagService);
         var messageHandler = new MessageHandler(noteService, userSession, noteDisplayService, tagHandler);
         
         if (update.CallbackQuery is not null)
