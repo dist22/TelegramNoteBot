@@ -15,6 +15,7 @@ builder.Services.AddDbContext<AppDbContext>(cfg =>
 builder.Services.AddScoped<NoteService>();
 builder.Services.AddScoped<CallbackHandler>();
 builder.Services.AddScoped<MessageHandler>();
+builder.Services.AddScoped<TagCommandHandler>();
 builder.Services.AddSingleton<UserSessionService>();
 builder.Services.AddSingleton<BotUpdateHandler>();
 builder.Services.AddScoped<NoteDisplayService>();

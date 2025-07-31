@@ -9,13 +9,14 @@ public class BotUpdateHandler(IServiceScopeFactory scopeFactory)
     public async Task HandleUpdateAsync(ITelegramBotClient client, Update update, CancellationToken cts)
     {
         using var  scope = scopeFactory.CreateScope();
+        
         var noteService = scope.ServiceProvider.GetRequiredService<NoteService>();
         var userSession = scope.ServiceProvider.GetRequiredService<UserSessionService>();
         var noteDisplayService = scope.ServiceProvider.GetRequiredService<NoteDisplayService>();
-        var tagService = scope.ServiceProvider.GetRequiredService<TagService>();
+        var tagHandler = scope.ServiceProvider.GetRequiredService<TagCommandHandler>();
         
         var callbackHandler = new CallbackHandler(noteService, userSession);
-        var messageHandler = new MessageHandler(noteService, userSession, tagService, noteDisplayService);
+        var messageHandler = new MessageHandler(noteService, userSession, noteDisplayService, tagHandler);
         
         if (update.CallbackQuery is not null)
             await callbackHandler.HandleUpdateAsync(client, update.CallbackQuery, cts);
