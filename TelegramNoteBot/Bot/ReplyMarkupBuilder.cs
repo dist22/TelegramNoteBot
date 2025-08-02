@@ -31,7 +31,7 @@ public static class ReplyMarkupBuilder
     public static InlineKeyboardMarkup TagMarkup(IEnumerable<Tag> tags, string emoji, string callBackCommand)
         => new(tags.Select(t => new[]
             {
-                InlineKeyboardButton.WithCallbackData($"{emoji} {t.Name}",$"{callBackCommand}{t.Id}]")
+                InlineKeyboardButton.WithCallbackData($"{emoji} {t.Name}",$"{callBackCommand}{t.Id}")
             })
             .ToArray()
         );
