@@ -15,6 +15,7 @@ public class CallbackHandler(NoteService noteService, UserSessionService userSes
         var user = callbackQuery.From;
         var data = callbackQuery.Data;
         var state = userSessionService.GetOrCreate(user.Id);
+        var d = 1;
         
         if(data.StartsWith(CallBackCommands.Delete) && int.TryParse(data[4..], out var noteIdToDelete))
         {
