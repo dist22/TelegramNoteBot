@@ -19,21 +19,25 @@ public static class ReplyMarkupBuilder
             [new KeyboardButton(BotTagCommands.Tags), new KeyboardButton(BotTagCommands.AddTags)],
             [new KeyboardButton(BotTagCommands.RemoveTags), new KeyboardButton(BotTagCommands.Back)]
         ]) { ResizeKeyboard = true };
+
+    public static ReplyKeyboardMarkup AddTagToNoteMenu()
+        => new([
+            [new KeyboardButton(AddTagToNoteCommands.JoinTag), new KeyboardButton(AddTagToNoteCommands.CreateAndJoin)],
+            [new  KeyboardButton(AddTagToNoteCommands.Skip)]
+        ]) { ResizeKeyboard = true };
     
     public static InlineKeyboardMarkup NotesMarkup(IEnumerable<Note> notes, string emoji, string callBackCommand) 
         => new (notes.Select(n => new[]
             {
-                InlineKeyboardButton.WithCallbackData($"{emoji} {n.Title}", $"{callBackCommand}{n.Id}")
+                InlineKeyboardButton.WithCallbackData($"{emoji} {n.Title}", $"{callBackCommand}|{n.Id}")
             })
             .ToArray()
         );
 
     public static InlineKeyboardMarkup TagMarkup(IEnumerable<Tag> tags, string emoji, string callBackCommand)
-        => new(tags.Select(t => new[]
-            {
-                InlineKeyboardButton.WithCallbackData($"{emoji} {t.Name}",$"{callBackCommand}{t.Id}")
-            })
-            .ToArray()
+        => new(tags.Select(t => 
+                InlineKeyboardButton.WithCallbackData($"{emoji} {t.Name}",$"{callBackCommand}|{t.Id}")
+            ).Chunk(2).Select(row => row.ToArray())
         );
     public static InlineKeyboardButton AboutDeveloper()
         => new ("My GitHub", "https://github.com/dist22");
