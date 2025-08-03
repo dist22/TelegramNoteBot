@@ -76,10 +76,8 @@ public class TagCommandHandler(TagService tagService, UserSessionService userSes
                 }
 
                 await tagService.AddTag(text, user.Id);
-                await client.SendMessage(chatId, "<b>Tag added ✅</b>", ParseMode.Html,
-                    replyMarkup: ReplyMarkupBuilder.TagManagementMenu()
-                    , cancellationToken: cts);
-                state.State = BotUserState.TagManagement;
+                await client.SendMessage(chatId, "<b>Tag added ✅</b>", ParseMode.Html, cancellationToken: cts);
+                state.State = BotUserState.None;
                 break;
         }
     }
