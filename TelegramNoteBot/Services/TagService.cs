@@ -6,7 +6,7 @@ namespace TelegramNoteBot.Services;
 
 public class TagService(AppDbContext dbContext, ILogger<TagService> logger)
 {
-    private readonly DbSet<Tag> _dbSet = dbContext.Tag;
+    private readonly DbSet<Tag> _dbSet = dbContext.Set<Tag>();
 
     public async Task AddTag(string name, long userId)
     {
@@ -22,6 +22,11 @@ public class TagService(AppDbContext dbContext, ILogger<TagService> logger)
         => await _dbSet
             .Where(t => t.AuthorId == userId)
             .ToListAsync();
+
+    public async Task<Tag?> GetTagAsync(long userId, long tagId)
+        => await _dbSet
+            .Where(t => t.Id == tagId && t.AuthorId == userId)
+            .FirstOrDefaultAsync();
 
     public async Task<bool> TagExist(string name, long userId)
         => await _dbSet

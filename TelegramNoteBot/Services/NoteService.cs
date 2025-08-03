@@ -8,21 +8,30 @@ public class NoteService(AppDbContext dbContext, ILogger<NoteService> logger)
 {
     private readonly DbSet<Note> _dbSet = dbContext.Set<Note>();
 
-    public async Task AddNote(long userId, string userName, string noteTile, string noteText)
+    public async Task<int> AddNote(long userId, string userName, string noteTile, string noteText)
     {
-        await  _dbSet.AddAsync(new Note
+
+        var note = new Note
         {
             UserId = userId,
             UserName = userName,
             Title = noteTile,
-            Text = noteText,
-        });
+            Text = noteText
+        };
+        
+        await  _dbSet.AddAsync(note);
         await dbContext.SaveChangesAsync();
+        
         logger.LogInformation("New note added");
+        
+        return note.Id;
     }
 
     public async Task<Note?> GetNote(long userId, int noteId) 
-        => await _dbSet.FirstOrDefaultAsync(n => n.UserId == userId && n.Id == noteId);
+        => await _dbSet
+            .Include(n => n.NoteTags)
+                .ThenInclude(n => n.Tag)
+            .FirstOrDefaultAsync(n => n.UserId == userId && n.Id == noteId);
 
 
     public async Task<List<Note>> GetNotes(long userId)
