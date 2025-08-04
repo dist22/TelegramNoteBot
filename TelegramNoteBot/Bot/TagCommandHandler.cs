@@ -59,22 +59,37 @@ public class TagCommandHandler(TagService tagService, UserSessionService userSes
         switch (state.State)
         {
             case BotUserState.AddingTag:
-                await AddValidTagAsync(client, text, chatId, user, state, "<b>Tag added ✅</b>", cts);
+
+                var messageTextforAddCreateTag = "<b>Tag added ✅</b>";
+                
+                await AddValidTagAsync(client, text, chatId, user, state, cts);
+                await client.SendMessage(chatId, messageTextforAddCreateTag, ParseMode.Html, cancellationToken: cts);
                 break;
             
             case BotUserState.CreatingTag:
                 
-                await AddValidTagAsync(client, text, chatId, user, state, 
-                    "<b>Tag added ✅</b>\n<i>Do you want to add more?</b>",
-                    cts);
-                
-                await noteTagService.AddNoteTagAsync(state.LastAddedNoteId, state.LastAddedTagId);
+                await AddValidTagAsync(client, text, chatId, user, state, cts);
+                if (state.SelectedTags.Count == 3)
+                {
+                    await noteTagService.AddNoteTagAsync(state.LastAddedNoteId, state.SelectedTags.Peek().Id);
+                    await client.SendMessage(chatId, "<b>✅ Max 3 tags selected. Saving note...</b>",
+                        ParseMode.Html, replyMarkup: ReplyMarkupBuilder.MainMenu(), cancellationToken: cts);
+                    userSessionService.Clear(user.Id);
+                }
+                else
+                {
+                    var remaining = 3 - state.SelectedTags.Count;
+
+                    await noteTagService.AddNoteTagAsync(state.LastAddedNoteId, state.SelectedTags.Peek().Id);
+
+                    await client.SendMessage(chatId, $"✅ Tag added. You can select {remaining} more.",
+                        ParseMode.Html, cancellationToken: cts);
+                }
                 break;
         }
     }
 
-    private async Task AddValidTagAsync(ITelegramBotClient client, string text, long chatId, User user, UserNoteState state, string messageText,
-        CancellationToken cts)
+    private async Task AddValidTagAsync(ITelegramBotClient client, string text, long chatId, User user, UserNoteState state, CancellationToken cts)
     {
         if (!text.StartsWith("#"))
         {
@@ -92,8 +107,7 @@ public class TagCommandHandler(TagService tagService, UserSessionService userSes
             return;
         }
         
-        state.LastAddedTagId = await tagService.AddTag(text, user.Id);
-        await client.SendMessage(chatId, messageText, ParseMode.Html, cancellationToken: cts);
+        state.SelectedTags.Push(await tagService.AddTag(text, user.Id));
         state.State = BotUserState.None;
     }
 

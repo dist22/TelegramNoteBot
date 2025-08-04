@@ -12,7 +12,8 @@ public class MessageHandler(
     UserSessionService userSessionService,
     NoteDisplayService noteDisplayService,
     TagCommandHandler tagCommandHandler,
-    AddTagToNoteCommandHandler addTagToNoteCommandHandler)
+    AddTagToNoteCommandHandler addTagToNoteCommandHandler,
+    TagService tagService)
 {
     public async Task HandleUpdateAsync(ITelegramBotClient client, Message message, CancellationToken cts)
     {
@@ -49,6 +50,15 @@ public class MessageHandler(
                 break;
 
             case BotCommands.FilterByTag:
+                
+                var tags = await tagService.GetAllAsync(user.Id);
+                if (!tags.Any())
+                {
+                    await client.SendMessage(chatId,"<b>😕 You don't have any tags yet.</b>", ParseMode.Html, cancellationToken: cts);
+                    break;
+                }
+                await client.SendMessage(chatId, "🧩 Choose a tag to filter notes:", ParseMode.Html,
+                    replyMarkup: ReplyMarkupBuilder.TagMarkup(tags, BotCommandEmojis.I, CallBackCommands.FilterByTag), cancellationToken: cts);
                 break;
 
             case BotCommands.ManageTags:

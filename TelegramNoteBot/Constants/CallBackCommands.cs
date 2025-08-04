@@ -6,4 +6,5 @@ public static class CallBackCommands
     public const string Info = "inf_";
     public const string TagDelete = "dtag_";
     public const string SelectTag = "select_tag_";
+    public const string FilterByTag = "filter_";
 }

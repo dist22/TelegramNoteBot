@@ -19,7 +19,7 @@ public class BotUpdateHandler(IServiceScopeFactory scopeFactory)
         var noteTagService = scope.ServiceProvider.GetRequiredService<NoteTagService>();
         
         var callbackHandler = new CallbackHandler(noteService, userSession, tagService, noteTagService);
-        var messageHandler = new MessageHandler(noteService, userSession, noteDisplayService, tagHandler, addTagToNoteCommandHandler);
+        var messageHandler = new MessageHandler(noteService, userSession, noteDisplayService, tagHandler, addTagToNoteCommandHandler, tagService);
         
         if (update.CallbackQuery is not null)
             await callbackHandler.HandleUpdateAsync(client, update.CallbackQuery, cts);

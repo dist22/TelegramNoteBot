@@ -27,6 +27,11 @@ public class NoteService(AppDbContext dbContext, ILogger<NoteService> logger)
         return note.Id;
     }
 
+    public async Task<List<Note>> GetNoteByTagAsync(long userId, int tagId)
+        => await _dbSet
+            .Where(n => n.UserId == userId && n.NoteTags.Any(nt => nt.TagId == tagId))
+            .ToListAsync();
+
     public async Task<Note?> GetNote(long userId, int noteId) 
         => await _dbSet
             .Include(n => n.NoteTags)
