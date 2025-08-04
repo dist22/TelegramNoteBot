@@ -42,22 +42,22 @@ public class CallbackHandler(
                 if (int.TryParse(idStr, out var noteIdToShow))
                 {
                     var note = await noteService.GetNote(user.Id, noteIdToShow);
-                    
+
                     var tags = note?.NoteTags
                         .Select(n => n.Tag.Name)
                         .ToList();
-                    
+
                     var formattedTags = tags is { Count: > 0 }
                         ? $"🏷 <i>Tags:</i> {string.Join(", ", tags)}"
                         : "🏷 <i>Tags:</i> <code>None</code>";
-                    
+
                     var formattedNote = $"""
                                          <b>📝 {note.Title}</b>
 
                                          <i>{note.Text}</i>
 
                                          <i>🗓 Created: {note.CreatedAt:dd MMM yyyy, HH:mm}</i>
-                                         
+
                                          {formattedTags}
                                          """;
                     await client.EditMessageText(chatId, messageId, formattedNote, ParseMode.Html,
@@ -104,6 +104,22 @@ public class CallbackHandler(
                     }
                 }
 
+                break;
+
+            case CallBackCommands.FilterByTag:
+                if (int.TryParse(idStr, out var tagId))
+                {
+                    var notes = await noteService.GetNoteByTagAsync(user.Id, tagId);
+                    if (!notes.Any())
+                    {
+                        await client.EditMessageText(chatId, messageId, "<b>No notes found with this tag.</b>",
+                            ParseMode.Html, cancellationToken: cts);
+                        return;
+                    }
+                    await client.EditMessageText(chatId, messageId, $"🔍 Found {notes.Count} note(s) with this tag:",
+                        ParseMode.Html, replyMarkup: ReplyMarkupBuilder.NotesMarkup(notes, BotCommandEmojis.I, CallBackCommands.Info),
+                        cancellationToken: cts);
+                }
                 break;
         }
     }
