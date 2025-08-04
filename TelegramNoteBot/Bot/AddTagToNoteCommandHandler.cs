@@ -2,20 +2,21 @@ using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using TelegramNoteBot.Constants;
+using TelegramNoteBot.Enums;
 using TelegramNoteBot.Services;
 
 namespace TelegramNoteBot.Bot;
 
 public class AddTagToNoteCommandHandler(TagService tagService, UserSessionService userSessionService)
 {
-    public async Task HandleCommandAsync(ITelegramBotClient client, long chatId, string text, User user,
-        CancellationToken cts)
+    public async Task HandleCommandAsync(ITelegramBotClient client, long chatId, string text, User user, UserNoteState state, CancellationToken cts)
     {
         switch (text)
         {
             case AddTagToNoteCommands.CreateAndJoin:
                 await client.SendMessage(chatId, "<b>✍️ Enter tag name</b>\nIt must start with <code>#</code>",
                     ParseMode.Html, cancellationToken: cts);
+                state.State = BotUserState.CreatingTag;
                 break;
 
             case AddTagToNoteCommands.JoinTag:

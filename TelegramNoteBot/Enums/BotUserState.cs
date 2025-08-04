@@ -7,6 +7,6 @@ public enum BotUserState
     EnteringSearchingQuery,
     TagManagement,
     AddingTag,
-    GetingTags,
+    CreatingTag,
     None
 }

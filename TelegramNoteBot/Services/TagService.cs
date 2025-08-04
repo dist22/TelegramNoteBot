@@ -8,14 +8,18 @@ public class TagService(AppDbContext dbContext, ILogger<TagService> logger)
 {
     private readonly DbSet<Tag> _dbSet = dbContext.Set<Tag>();
 
-    public async Task AddTag(string name, long userId)
+    public async Task<int> AddTag(string name, long userId)
     {
-        await _dbSet.AddAsync(new Tag 
-            { 
-                Name = name, 
-                AuthorId = userId 
-            });
+        var tag = new Tag
+        {
+            Name = name,
+            AuthorId = userId
+        };
+
+        await _dbSet.AddAsync(tag);
         await dbContext.SaveChangesAsync();
+
+        return tag.Id;
     }
 
     public async Task<List<Tag>> GetAllAsync(long userId)

@@ -8,7 +8,7 @@ using TelegramNoteBot.Services;
 
 namespace TelegramNoteBot.Bot;
 
-public class TagCommandHandler(TagService tagService, UserSessionService userSessionService)
+public class TagCommandHandler(TagService tagService, UserSessionService userSessionService, NoteTagService noteTagService)
 {
     public async Task HandleCommandAsync(ITelegramBotClient client, long chatId, string text, User user,
         CancellationToken cts)
@@ -59,26 +59,42 @@ public class TagCommandHandler(TagService tagService, UserSessionService userSes
         switch (state.State)
         {
             case BotUserState.AddingTag:
-                if (!text.StartsWith("#"))
-                {
-                    await client.SendMessage(chatId,
-                        "❌ <b>Invalid tag</b>. It must start with <code>#</code>. Try again.", ParseMode.Html,
-                        cancellationToken: cts);
-                    return;
-                }
-
-                if (await tagService.TagExist(text, user.Id))
-                {
-                    await client.SendMessage(chatId,
-                        "⚠️ <i>This tag already exists.</i> Try again.", ParseMode.Html,
-                        cancellationToken: cts);
-                    return;
-                }
-
-                await tagService.AddTag(text, user.Id);
-                await client.SendMessage(chatId, "<b>Tag added ✅</b>", ParseMode.Html, cancellationToken: cts);
-                state.State = BotUserState.None;
+                await AddValidTagAsync(client, text, chatId, user, state, "<b>Tag added ✅</b>", cts);
+                break;
+            
+            case BotUserState.CreatingTag:
+                
+                await AddValidTagAsync(client, text, chatId, user, state, 
+                    "<b>Tag added ✅</b>\n<i>Do you want to add more?</b>",
+                    cts);
+                
+                await noteTagService.AddNoteTagAsync(state.LastAddedNoteId, state.LastAddedTagId);
                 break;
         }
     }
+
+    private async Task AddValidTagAsync(ITelegramBotClient client, string text, long chatId, User user, UserNoteState state, string messageText,
+        CancellationToken cts)
+    {
+        if (!text.StartsWith("#"))
+        {
+            await client.SendMessage(chatId,
+                "❌ <b>Invalid tag</b>. It must start with <code>#</code>. Try again.", ParseMode.Html,
+                cancellationToken: cts);
+            return;
+        }
+
+        if (await tagService.TagExist(text, user.Id))
+        {
+            await client.SendMessage(chatId,
+                "⚠️ <i>This tag already exists.</i> Try again.", ParseMode.Html,
+                cancellationToken: cts);
+            return;
+        }
+        
+        state.LastAddedTagId = await tagService.AddTag(text, user.Id);
+        await client.SendMessage(chatId, messageText, ParseMode.Html, cancellationToken: cts);
+        state.State = BotUserState.None;
+    }
+
 }
