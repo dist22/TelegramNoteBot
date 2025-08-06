@@ -8,7 +8,10 @@ using TelegramNoteBot.Services;
 
 namespace TelegramNoteBot.Bot;
 
-public class TagCommandHandler(TagService tagService, UserSessionService userSessionService, NoteTagService noteTagService)
+public class TagCommandHandler(
+    TagService tagService,
+    UserSessionService userSessionService,
+    TagHelperService tagHelperService)
 {
     public async Task HandleCommandAsync(ITelegramBotClient client, long chatId, string text, User user,
         CancellationToken cts)
@@ -18,10 +21,18 @@ public class TagCommandHandler(TagService tagService, UserSessionService userSes
 
         switch (text)
         {
+            case AddTagToNoteCommands.CreateAndJoin:
+                await tagHelperService.SendStartCreatTagMessageAsync(client, chatId,state, BotUserState.CreatingTag, cts);
+                break;
             case BotTagCommands.AddTags:
-                state.State = BotUserState.AddingTag;
-                await client.SendMessage(chatId, "<b>✍️ Enter tag name</b>\nIt must start with <code>#</code>"
-                    , ParseMode.Html, cancellationToken: cts);
+                await tagHelperService.SendStartCreatTagMessageAsync(client, chatId,state, BotUserState.AddingTag, cts);
+                break;
+            
+            case AddTagToNoteCommands.JoinTag:
+
+                var messageTextForJoinTag = "<b>Select up to 3 tags:</b>";
+                await tagHelperService.TrySendTagMarkup(client, user, chatId, messageTextForJoinTag, tags,
+                    BotCommandEmojis.WhiteCheckMark, CallBackCommands.SelectTag,ReplyMarkupBuilder.AddTagToNoteMenu(), cts);
                 break;
 
             case BotTagCommands.Tags:
@@ -33,22 +44,22 @@ public class TagCommandHandler(TagService tagService, UserSessionService userSes
                 break;
 
             case BotTagCommands.RemoveTags:
-                if (!tags.Any())
-                {
-                    await client.SendMessage(chatId, "😕 <i>You don't have any tags yet.</i>", ParseMode.Html,
-                        cancellationToken: cts);
-                    return;
-                }
 
-                await client.SendMessage(chatId, "<b>🗑 Select tag to remove:</b>",
-                    replyMarkup: ReplyMarkupBuilder.TagMarkup(tags, BotCommandEmojis.X, CallBackCommands.TagDelete),
-                    parseMode: ParseMode.Html, cancellationToken: cts);
+                var messageTextForRemovingTag = "<b>🗑 Select tag to remove:</b>";
+                await tagHelperService.TrySendTagMarkup(client, user, chatId, messageTextForRemovingTag, tags,
+                    BotCommandEmojis.X, CallBackCommands.TagDelete,ReplyMarkupBuilder.TagManagementMenu(), cts);
                 break;
 
             case BotTagCommands.Back:
                 await client.SendMessage(chatId, "<b>🔙 Returned to main menu</b>",
                     replyMarkup: ReplyMarkupBuilder.MainMenu(), parseMode: ParseMode.Html, cancellationToken: cts);
                 state.State = BotUserState.None;
+                break;
+            
+            case AddTagToNoteCommands.Skip:
+                await client.SendMessage(chatId, "<b>🔙 Returned to main menu</b>", ParseMode.Html
+                    , replyMarkup: ReplyMarkupBuilder.MainMenu(), cancellationToken: cts);
+                userSessionService.Clear(user.Id);
                 break;
         }
     }
@@ -59,56 +70,15 @@ public class TagCommandHandler(TagService tagService, UserSessionService userSes
         switch (state.State)
         {
             case BotUserState.AddingTag:
-
                 var messageTextforAddCreateTag = "<b>Tag added ✅</b>";
-                
-                await AddValidTagAsync(client, text, chatId, user, state, cts);
+                await tagHelperService.TryCreateTagAsync(client, chatId, text, user, state, cts);
                 await client.SendMessage(chatId, messageTextforAddCreateTag, ParseMode.Html, cancellationToken: cts);
                 break;
-            
+
             case BotUserState.CreatingTag:
-                
-                await AddValidTagAsync(client, text, chatId, user, state, cts);
-                if (state.SelectedTags.Count == 3)
-                {
-                    await noteTagService.AddNoteTagAsync(state.LastAddedNoteId, state.SelectedTags.Peek().Id);
-                    await client.SendMessage(chatId, "<b>✅ Max 3 tags selected. Saving note...</b>",
-                        ParseMode.Html, replyMarkup: ReplyMarkupBuilder.MainMenu(), cancellationToken: cts);
-                    userSessionService.Clear(user.Id);
-                }
-                else
-                {
-                    var remaining = 3 - state.SelectedTags.Count;
-
-                    await noteTagService.AddNoteTagAsync(state.LastAddedNoteId, state.SelectedTags.Peek().Id);
-
-                    await client.SendMessage(chatId, $"✅ Tag added. You can select {remaining} more.",
-                        ParseMode.Html, cancellationToken: cts);
-                }
+                await tagHelperService.TryCreateTagAsync(client, chatId, text, user, state, cts);
+                await tagHelperService.TryAddTagToNoteAsync(client, chatId, user, state, cts);
                 break;
         }
     }
-
-    private async Task AddValidTagAsync(ITelegramBotClient client, string text, long chatId, User user, UserNoteState state, CancellationToken cts)
-    {
-        if (!text.StartsWith("#"))
-        {
-            await client.SendMessage(chatId,
-                "❌ <b>Invalid tag</b>. It must start with <code>#</code>. Try again.", ParseMode.Html,
-                cancellationToken: cts);
-            return;
-        }
-
-        if (await tagService.TagExist(text, user.Id))
-        {
-            await client.SendMessage(chatId,
-                "⚠️ <i>This tag already exists.</i> Try again.", ParseMode.Html,
-                cancellationToken: cts);
-            return;
-        }
-        
-        state.SelectedTags.Push(await tagService.AddTag(text, user.Id));
-        state.State = BotUserState.None;
-    }
-
 }

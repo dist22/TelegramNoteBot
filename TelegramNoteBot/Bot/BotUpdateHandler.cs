@@ -14,12 +14,11 @@ public class BotUpdateHandler(IServiceScopeFactory scopeFactory)
         var userSession = scope.ServiceProvider.GetRequiredService<UserSessionService>();
         var noteDisplayService = scope.ServiceProvider.GetRequiredService<NoteDisplayService>();
         var tagHandler = scope.ServiceProvider.GetRequiredService<TagCommandHandler>();
-        var addTagToNoteCommandHandler = scope.ServiceProvider.GetRequiredService<AddTagToNoteCommandHandler>();
         var tagService = scope.ServiceProvider.GetRequiredService<TagService>();
-        var noteTagService = scope.ServiceProvider.GetRequiredService<NoteTagService>();
+        var tagHelperService = scope.ServiceProvider.GetRequiredService<TagHelperService>();
         
-        var callbackHandler = new CallbackHandler(noteService, userSession, tagService, noteTagService);
-        var messageHandler = new MessageHandler(noteService, userSession, noteDisplayService, tagHandler, addTagToNoteCommandHandler, tagService);
+        var callbackHandler = new CallbackHandler(noteService, userSession, tagService, tagHelperService);
+        var messageHandler = new MessageHandler(noteService, userSession, noteDisplayService, tagHandler, tagService, tagHelperService);
         
         if (update.CallbackQuery is not null)
             await callbackHandler.HandleUpdateAsync(client, update.CallbackQuery, cts);

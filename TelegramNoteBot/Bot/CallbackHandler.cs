@@ -11,7 +11,7 @@ public class CallbackHandler(
     NoteService noteService,
     UserSessionService userSessionService,
     TagService tagService,
-    NoteTagService noteTagService)
+    TagHelperService tagHelperService)
 {
     public async Task HandleUpdateAsync(ITelegramBotClient client, CallbackQuery callbackQuery, CancellationToken cts)
     {
@@ -86,24 +86,8 @@ public class CallbackHandler(
                     if (state.SelectedTags.All(t => t.Id != tag.Id))
                         state.SelectedTags.Push(tag);
 
-                    if (state.SelectedTags.Count == 3)
-                    {
-                        await noteTagService.AddNoteTagAsync(state.LastAddedNoteId, state.SelectedTags.Peek().Id);
-                        await client.SendMessage(chatId, "<b>✅ Max 3 tags selected. Saving note...</b>",
-                            ParseMode.Html, replyMarkup: ReplyMarkupBuilder.MainMenu(), cancellationToken: cts);
-                        userSessionService.Clear(user.Id);
-                    }
-                    else
-                    {
-                        var remaining = 3 - state.SelectedTags.Count;
-
-                        await noteTagService.AddNoteTagAsync(state.LastAddedNoteId, state.SelectedTags.Peek().Id);
-
-                        await client.SendMessage(chatId, $"✅ Tag added. You can select {remaining} more.",
-                            ParseMode.Html, cancellationToken: cts);
-                    }
+                    await tagHelperService.TryAddTagToNoteAsync(client, chatId, user, state, cts);
                 }
-
                 break;
 
             case CallBackCommands.FilterByTag:
