@@ -56,7 +56,8 @@ public class MessageHandler(
                 var tags = await tagService.GetAllAsync(user.Id);
                 var messageText = "🧩 Choose a tag to filter notes:";
 
-                await tagHelperService.TrySendTagMarkup(client, user,chatId, messageText, tags, BotCommandEmojis.I, CallBackCommands.FilterByTag, ReplyMarkupBuilder.MainMenu(), cts);
+                await tagHelperService.TrySendTagMarkup(client, user, chatId, messageText, tags, BotCommandEmojis.I,
+                    CallBackCommands.FilterByTag, ReplyMarkupBuilder.MainMenu(), cts);
                 break;
 
             case BotCommands.ManageTags:
@@ -64,7 +65,7 @@ public class MessageHandler(
                     replyMarkup: ReplyMarkupBuilder.TagManagementMenu(), parseMode: ParseMode.Html,
                     cancellationToken: cts);
                 break;
-            
+
             case BotCommands.AboutDeveloper:
                 await client.SendMessage(chatId, "<b>Tg NoteBot: v.01.7_tag_finally</b>", ParseMode.Html,
                     protectContent: true,
@@ -82,8 +83,8 @@ public class MessageHandler(
             case BotTagCommands.Back:
                 await tagCommandHandler.HandleCommandAsync(client, chatId, text, user, cts);
                 break;
-            
-            
+
+
             default:
                 if (state.State == BotUserState.None)
                     await client.SendMessage(chatId, "<b>❗ Unknown command</b>\nPlease use the menu below.",
