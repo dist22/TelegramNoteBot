@@ -16,12 +16,12 @@ builder.Services.AddScoped<NoteService>();
 builder.Services.AddScoped<CallbackHandler>();
 builder.Services.AddScoped<MessageHandler>();
 builder.Services.AddScoped<TagCommandHandler>();
-builder.Services.AddScoped<AddTagToNoteCommandHandler>();
 builder.Services.AddSingleton<UserSessionService>();
 builder.Services.AddSingleton<BotUpdateHandler>();
 builder.Services.AddScoped<NoteDisplayService>();
 builder.Services.AddScoped<TagService>();
 builder.Services.AddScoped<NoteTagService>();
+builder.Services.AddScoped<TagHelperService>();
 builder.Services.AddHostedService<Worker>();
 
 var host = builder.Build();

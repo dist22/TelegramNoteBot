@@ -1,6 +1,7 @@
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
+using Telegram.Bot.Types.ReplyMarkups;
 using TelegramNoteBot.Bot;
 using TelegramNoteBot.Constants;
 using TelegramNoteBot.Enums;
@@ -53,18 +54,26 @@ public class TagHelperService(TagService tagService, UserSessionService userSess
         }
     }
 
-    public async Task TrySendTagMarkup(ITelegramBotClient client, long chatId, User user, List<Tag> tags,string emoji, string messageText, string callBackCommand, CancellationToken cts )
+    public async Task TrySendTagMarkup(ITelegramBotClient client,User user, long chatId,string messageText, List<Tag> tags,string emoji, 
+        string callBackCommand, ReplyKeyboardMarkup replyKeyboardMarkup ,CancellationToken cts )
     {
         if (!tags.Any())
         {
-            await client.SendMessage(chatId, "<b>😕 You don't have any tags yet.</b>",
-                ParseMode.Html, replyMarkup: ReplyMarkupBuilder.MainMenu(), cancellationToken: cts);
+            await client.SendMessage(chatId,"<b>😕 You don't have any tags yet.</b>", ParseMode.Html, replyMarkup: replyKeyboardMarkup,
+                cancellationToken: cts);
             userSessionService.Clear(user.Id);
             return;
         }
         await client.SendMessage(chatId, messageText, ParseMode.Html,
-            replyMarkup: ReplyMarkupBuilder.TagMarkup(tags, emoji, callBackCommand),
-            cancellationToken: cts);
+            replyMarkup: ReplyMarkupBuilder.TagMarkup(tags, emoji, callBackCommand), cancellationToken: cts);
+
+    }
+
+    public async Task SendStartCreatTagMessageAsync(ITelegramBotClient client, long chatId,UserNoteState state, BotUserState newState, CancellationToken cts)
+    {
+        state.State = newState;
+        await client.SendMessage(chatId, "<b>✍️ Enter tag name</b>\nIt must start with <code>#</code>",
+            ParseMode.Html, cancellationToken: cts);
     }
 
 }
