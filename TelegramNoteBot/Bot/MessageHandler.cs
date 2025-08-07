@@ -15,6 +15,9 @@ public class MessageHandler(
     TagService tagService,
     TagHelperService tagHelperService)
 {
+    private readonly Dictionary<string, Func<ITelegramBotClient, long, User, CancellationToken, Task>>
+        _commandHandlers = new();
+
     public async Task HandleUpdateAsync(ITelegramBotClient client, Message message, CancellationToken cts)
     {
         if (message.Text is not { } text) return;
@@ -23,83 +26,100 @@ public class MessageHandler(
         var chatId = message.Chat.Id;
         var state = userSessionService.GetOrCreate(user.Id);
 
-        switch (text)
+        if (!_commandHandlers.Any())
+            InitializeCommandHandlers(state);
+
+        if (_commandHandlers.TryGetValue(text, out var handler))
         {
-            //Basic menu commands ----->
-            //--------------------------
-            case BotCommands.Start:
-                await client.SendMessage(chatId,
-                    "<b>👋 Welcome to NoteBot!</b>\n\nUse the menu below to manage your notes, tags, and more.",
-                    replyMarkup: ReplyMarkupBuilder.MainMenu(), parseMode: ParseMode.Html, cancellationToken: cts);
-                break;
-            case BotCommands.AddNote:
-                state.State = BotUserState.EnteringNoteTitle;
-                await client.SendMessage(chatId, "<b>📝 Please enter the title for your new note:</b>", ParseMode.Html,
-                    cancellationToken: cts);
-                break;
-            case BotCommands.MyNotes:
-                await noteDisplayService.SendNotesListAsync(client, user, chatId, BotCommandEmojis.I,
-                    CallBackCommands.Info, cts);
-                break;
-            case BotCommands.SearchNote:
-                state.State = BotUserState.EnteringSearchingQuery;
-                await client.SendMessage(chatId, "<b>🔍 Enter a keyword to search your notes:</b>", ParseMode.Html,
-                    cancellationToken: cts);
-                break;
-            case BotCommands.DeleteNote:
-                await noteDisplayService.SendNotesListAsync(client, user, chatId, BotCommandEmojis.X,
-                    CallBackCommands.Delete, cts);
-                break;
-
-            case BotCommands.FilterByTag:
-
-                var tags = await tagService.GetAllAsync(user.Id);
-                var messageText = "🧩 Choose a tag to filter notes:";
-
-                await tagHelperService.TrySendTagMarkup(client, user, chatId, messageText, tags, BotCommandEmojis.I,
-                    CallBackCommands.FilterByTag, ReplyMarkupBuilder.MainMenu(), cts);
-                break;
-
-            case BotCommands.ManageTags:
-                await client.SendMessage(chatId, "<b>Tag management menu</b>",
-                    replyMarkup: ReplyMarkupBuilder.TagManagementMenu(), parseMode: ParseMode.Html,
-                    cancellationToken: cts);
-                break;
-
-            case BotCommands.AboutDeveloper:
-                await client.SendMessage(chatId, "<b>Tg NoteBot: v.01.7_tag_finally</b>", ParseMode.Html,
-                    protectContent: true,
-                    replyMarkup: ReplyMarkupBuilder.AboutDeveloper(), cancellationToken: cts);
-                break;
-
-            //Tag and tagManagement menu commands --->
-            // --------------------------------------
-            case AddTagToNoteCommands.CreateAndJoin:
-            case AddTagToNoteCommands.JoinTag:
-            case AddTagToNoteCommands.Skip:
-            case BotTagCommands.AddTags:
-            case BotTagCommands.RemoveTags:
-            case BotTagCommands.Tags:
-            case BotTagCommands.Back:
-                await tagCommandHandler.HandleCommandAsync(client, chatId, text, user, cts);
-                break;
-
-
-            default:
-                if (state.State == BotUserState.None)
-                    await client.SendMessage(chatId, "<b>❗ Unknown command</b>\nPlease use the menu below.",
-                        ParseMode.Html,
-                        replyMarkup: ReplyMarkupBuilder.MainMenu(),
-                        cancellationToken: cts);
-                else
-                    await HandleTextInputAsync(client, user, chatId, text, state, userSessionService, cts);
-                break;
+            await handler(client, chatId, user, cts);
+        }
+        else if (IsTagCommand(text))
+        {
+            await tagCommandHandler.HandleCommandAsync(client, chatId, text, user, cts);
+        }
+        else if (state.State == BotUserState.None)
+        {
+            await client.SendMessage(chatId, "<b>❗ Unknown command</b>\nPlease use the menu below.",
+                ParseMode.Html,
+                replyMarkup: ReplyMarkupBuilder.MainMenu(),
+                cancellationToken: cts);
+        }
+        else
+        {
+            await HandleTextInputAsync(client, user, chatId, text, state, cts);
         }
     }
 
+    private void InitializeCommandHandlers(UserNoteState state)
+    {
+        _commandHandlers[BotCommands.Start] = async (client, chatId, user, cts) =>
+        {
+            await client.SendMessage(chatId,
+                "<b>👋 Welcome to NoteBot!</b>\n\nUse the menu below to manage your notes, tags, and more.",
+                replyMarkup: ReplyMarkupBuilder.MainMenu(), parseMode: ParseMode.Html, cancellationToken: cts);
+        };
+
+        _commandHandlers[BotCommands.AddNote] = async (client, chatId, user, cts) =>
+        {
+            state.State = BotUserState.EnteringNoteTitle;
+            await client.SendMessage(chatId, "<b>📝 Please enter the title for your new note:</b>", ParseMode.Html,
+                cancellationToken: cts);
+        };
+
+        _commandHandlers[BotCommands.MyNotes] = async (client, chatId, user, cts) =>
+        {
+            await noteDisplayService.SendNotesListAsync(client, user, chatId, BotCommandEmojis.I,
+                CallBackCommands.Info, cts);
+        };
+
+        _commandHandlers[BotCommands.SearchNote] = async (client, chatId, user, cts) =>
+        {
+            state.State = BotUserState.EnteringSearchingQuery;
+            await client.SendMessage(chatId, "<b>🔍 Enter a keyword to search your notes:</b>", ParseMode.Html,
+                cancellationToken: cts);
+        };
+
+        _commandHandlers[BotCommands.DeleteNote] = async (client, chatId, user, cts) =>
+        {
+            await noteDisplayService.SendNotesListAsync(client, user, chatId, BotCommandEmojis.X,
+                CallBackCommands.Delete, cts);
+        };
+
+        _commandHandlers[BotCommands.FilterByTag] = async (client, chatId, user, cts) =>
+        {
+            var tags = await tagService.GetAllAsync(user.Id);
+            var messageText = "🧩 Choose a tag to filter notes:";
+
+            await tagHelperService.TrySendTagMarkup(client, user, chatId, messageText, tags, BotCommandEmojis.I,
+                CallBackCommands.FilterByTag, ReplyMarkupBuilder.MainMenu(), cts);
+        };
+
+        _commandHandlers[BotCommands.AboutDeveloper] = async (client, chatId, user, cts) =>
+        {
+            await client.SendMessage(chatId, "<b>Tg NoteBot: v.01.7_tag_finally</b>", ParseMode.Html,
+                protectContent: true,
+                replyMarkup: ReplyMarkupBuilder.AboutDeveloper(), cancellationToken: cts);
+        };
+
+        _commandHandlers[BotCommands.ManageTags] = async (client, chatId, user, cts) =>
+        {
+            await client.SendMessage(chatId, "<b>Tag management menu</b>",
+                replyMarkup: ReplyMarkupBuilder.TagManagementMenu(), parseMode: ParseMode.Html,
+                cancellationToken: cts);
+        };
+    }
+
+    private bool IsTagCommand(string text)
+        => text is BotTagCommands.AddTags
+            or BotTagCommands.RemoveTags
+            or BotTagCommands.Tags
+            or BotTagCommands.Back
+            or AddTagToNoteCommands.CreateAndJoin
+            or AddTagToNoteCommands.JoinTag
+            or AddTagToNoteCommands.Skip;
+
     private async Task HandleTextInputAsync(ITelegramBotClient client, User user, long chatId, string text,
-        UserNoteState state, UserSessionService sessionService,
-        CancellationToken cts)
+        UserNoteState state, CancellationToken cts)
     {
         switch (state.State)
         {
@@ -122,7 +142,7 @@ public class MessageHandler(
 
             case BotUserState.EnteringSearchingQuery:
                 await noteDisplayService.SendSearchedNoteListAsync(client, user, chatId, text, cts);
-                sessionService.Clear(user.Id);
+                userSessionService.Clear(user.Id);
                 break;
 
             case BotUserState.CreatingTag:

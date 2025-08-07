@@ -10,7 +10,7 @@ public class Note
     public string Title { get; set; } = string.Empty;
     public string Text { get; set; } = string.Empty;
     
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow ;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow.AddHours(3) ;
 
     public List<NoteTag> NoteTags { get; set; } = new();
 }

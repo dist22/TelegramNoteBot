@@ -13,55 +13,69 @@ public class TagCommandHandler(
     UserSessionService userSessionService,
     TagHelperService tagHelperService)
 {
+    private readonly Dictionary<string, Func<ITelegramBotClient, long, User, CancellationToken, Task>>
+        _handlers = new();
+
     public async Task HandleCommandAsync(ITelegramBotClient client, long chatId, string text, User user,
         CancellationToken cts)
     {
-        var state = userSessionService.GetOrCreate(user.Id);
+        
         var tags = await tagService.GetAllAsync(user.Id);
+        var state = userSessionService.GetOrCreate(user.Id);
+        
+        if(!_handlers.Any())
+            InitializeCommandHandlers(state, tags);
 
-        switch (text)
+        if (_handlers.TryGetValue(text, out var handler))
+            await handler(client, chatId, user, cts);
+    }
+
+    private void InitializeCommandHandlers(UserNoteState state, List<Tag> tags)
+    {
+        _handlers[BotTagCommands.AddTags] = async (client, chatId, user, cts) =>
         {
-            case AddTagToNoteCommands.CreateAndJoin:
-                await tagHelperService.SendStartCreatTagMessageAsync(client, chatId,state, BotUserState.CreatingTag, cts);
-                break;
-            case BotTagCommands.AddTags:
-                await tagHelperService.SendStartCreatTagMessageAsync(client, chatId,state, BotUserState.AddingTag, cts);
-                break;
+            await tagHelperService.SendStartCreatTagMessageAsync(client, chatId, state, BotUserState.AddingTag, cts);
+        };
+        _handlers[BotTagCommands.Tags] = async (client, chatId, user, cts) =>
+        {
+
+            var mes = tags.Any()
+                ? string.Join(", ", tags.Select(t => t.Name))
+                : "😕 <i>You don't have any tags yet.</i>";
+            await client.SendMessage(chatId, $"<b>🏷 Your tags:</b>\n\n{mes}", ParseMode.Html,
+                cancellationToken: cts);
+        };
+        _handlers[BotTagCommands.Back] = async (client, chatId, user, cts) =>
+        {
             
-            case AddTagToNoteCommands.JoinTag:
+            await client.SendMessage(chatId, "<b>🔙 Returned to main menu</b>",
+                replyMarkup: ReplyMarkupBuilder.MainMenu(), parseMode: ParseMode.Html, cancellationToken: cts);
+            state.State = BotUserState.None;
+        };
+        _handlers[BotTagCommands.RemoveTags] = async (client, chatId, user, cts) =>
+        {
+            await tagHelperService.TrySendTagMarkup(client, user, chatId, "<b>🗑 Select tag to remove:</b>", tags,
+                BotCommandEmojis.X, CallBackCommands.TagDelete, ReplyMarkupBuilder.TagManagementMenu(), cts);
+        };
+        _handlers[AddTagToNoteCommands.Skip] = async (client, chatId, user, cts) =>
+        {
+            await client.SendMessage(chatId, "<b>🔙 Returned to main menu</b>", ParseMode.Html
+                , replyMarkup: ReplyMarkupBuilder.MainMenu(), cancellationToken: cts);
+            userSessionService.Clear(user.Id);
+        };
+        _handlers[AddTagToNoteCommands.JoinTag] = async (client, chatId, user, cts) =>
+        {
 
-                var messageTextForJoinTag = "<b>Select up to 3 tags:</b>";
-                await tagHelperService.TrySendTagMarkup(client, user, chatId, messageTextForJoinTag, tags,
-                    BotCommandEmojis.WhiteCheckMark, CallBackCommands.SelectTag,ReplyMarkupBuilder.AddTagToNoteMenu(), cts);
-                break;
-
-            case BotTagCommands.Tags:
-                var mes = tags.Any()
-                    ? string.Join(", ", tags.Select(t => t.Name))
-                    : "😕 <i>You don't have any tags yet.</i>";
-                await client.SendMessage(chatId, $"<b>🏷 Your tags:</b>\n\n{mes}", ParseMode.Html,
-                    cancellationToken: cts);
-                break;
-
-            case BotTagCommands.RemoveTags:
-
-                var messageTextForRemovingTag = "<b>🗑 Select tag to remove:</b>";
-                await tagHelperService.TrySendTagMarkup(client, user, chatId, messageTextForRemovingTag, tags,
-                    BotCommandEmojis.X, CallBackCommands.TagDelete,ReplyMarkupBuilder.TagManagementMenu(), cts);
-                break;
-
-            case BotTagCommands.Back:
-                await client.SendMessage(chatId, "<b>🔙 Returned to main menu</b>",
-                    replyMarkup: ReplyMarkupBuilder.MainMenu(), parseMode: ParseMode.Html, cancellationToken: cts);
-                state.State = BotUserState.None;
-                break;
+            await tagHelperService.TrySendTagMarkup(client, user, chatId, "<b>Select up to 3 tags:</b>", tags,
+                BotCommandEmojis.WhiteCheckMark, CallBackCommands.SelectTag, ReplyMarkupBuilder.AddTagToNoteMenu(),
+                cts);
+        };
+        _handlers[AddTagToNoteCommands.CreateAndJoin] = async (client, chatId, user, cts) =>
+        {
             
-            case AddTagToNoteCommands.Skip:
-                await client.SendMessage(chatId, "<b>🔙 Returned to main menu</b>", ParseMode.Html
-                    , replyMarkup: ReplyMarkupBuilder.MainMenu(), cancellationToken: cts);
-                userSessionService.Clear(user.Id);
-                break;
-        }
+            await tagHelperService.SendStartCreatTagMessageAsync(client, chatId, state, BotUserState.CreatingTag,
+                cts);
+        };
     }
 
     public async Task HandleTextTagInputAsync(ITelegramBotClient client, string text, long chatId, User user,
@@ -70,9 +84,8 @@ public class TagCommandHandler(
         switch (state.State)
         {
             case BotUserState.AddingTag:
-                var messageTextforAddCreateTag = "<b>Tag added ✅</b>";
                 await tagHelperService.TryCreateTagAsync(client, chatId, text, user, state, cts);
-                await client.SendMessage(chatId, messageTextforAddCreateTag, ParseMode.Html, cancellationToken: cts);
+                await client.SendMessage(chatId, "<b>Tag added ✅</b>", ParseMode.Html, cancellationToken: cts);
                 break;
 
             case BotUserState.CreatingTag:
