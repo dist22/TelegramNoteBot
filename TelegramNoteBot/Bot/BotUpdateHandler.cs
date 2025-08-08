@@ -16,9 +16,11 @@ public class BotUpdateHandler(IServiceScopeFactory scopeFactory)
         var tagHandler = scope.ServiceProvider.GetRequiredService<TagCommandHandler>();
         var tagService = scope.ServiceProvider.GetRequiredService<TagService>();
         var tagHelperService = scope.ServiceProvider.GetRequiredService<TagHelperService>();
+        var replyMarkupBuilder = scope.ServiceProvider.GetRequiredService<ReplyMarkupBuilder>();
+        var redisCallBackStorage = scope.ServiceProvider.GetRequiredService<RedisCallBackStorage>();
         
-        var callbackHandler = new CallbackHandler(noteService, userSession, tagService, tagHelperService);
-        var messageHandler = new MessageHandler(noteService, userSession, noteDisplayService, tagHandler, tagService, tagHelperService);
+        var callbackHandler = new CallbackHandler(noteService, userSession, tagService, tagHelperService, replyMarkupBuilder,redisCallBackStorage );
+        var messageHandler = new MessageHandler(noteService, userSession, noteDisplayService, tagHandler, tagService, tagHelperService, replyMarkupBuilder);
         
         if (update.CallbackQuery is not null)
             await callbackHandler.HandleUpdateAsync(client, update.CallbackQuery, cts);

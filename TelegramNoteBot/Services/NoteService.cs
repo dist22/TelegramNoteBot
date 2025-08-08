@@ -38,6 +38,15 @@ public class NoteService(AppDbContext dbContext, ILogger<NoteService> logger)
                 .ThenInclude(n => n.Tag)
             .FirstOrDefaultAsync(n => n.UserId == userId && n.Id == noteId);
 
+    public async Task<IEnumerable<Note>> GetSortedAsync(long userId, bool desc)
+    {
+        var notes = await GetNotes(userId);
+        
+        return desc 
+            ? notes.OrderByDescending(n => n.CreatedAt) 
+            : notes.OrderBy(n => n.CreatedAt);
+    }
+
 
     public async Task<List<Note>> GetNotes(long userId)
     {

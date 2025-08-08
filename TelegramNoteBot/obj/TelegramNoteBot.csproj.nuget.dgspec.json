@@ -61,6 +61,10 @@
               "target": "Package",
               "version": "[9.0.4, )"
             },
+            "StackExchange.Redis": {
+              "target": "Package",
+              "version": "[2.8.58, )"
+            },
             "Telegram.Bot": {
               "target": "Package",
               "version": "[22.6.0, )"

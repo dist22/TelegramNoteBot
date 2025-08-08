@@ -9,7 +9,7 @@ using TelegramNoteBot.Models;
 
 namespace TelegramNoteBot.Services;
 
-public class TagHelperService(TagService tagService, UserSessionService userSessionService, NoteTagService noteTagService)
+public class TagHelperService(TagService tagService, UserSessionService userSessionService, NoteTagService noteTagService, ReplyMarkupBuilder replyMarkupBuilder)
 {
 
     public async Task TryCreateTagAsync(ITelegramBotClient client, long chatId, string text, User user, UserNoteState state,CancellationToken cts)
@@ -40,7 +40,7 @@ public class TagHelperService(TagService tagService, UserSessionService userSess
         {
             await noteTagService.AddNoteTagAsync(state.LastAddedNoteId, state.SelectedTags.Peek().Id);
             await client.SendMessage(chatId, "<b>✅ Max 3 tags selected. Saving note...</b>",
-                ParseMode.Html, replyMarkup: ReplyMarkupBuilder.MainMenu(), cancellationToken: cts);
+                ParseMode.Html, replyMarkup: replyMarkupBuilder.MainMenu(), cancellationToken: cts);
             userSessionService.Clear(user.Id);
         }
         else
@@ -65,7 +65,7 @@ public class TagHelperService(TagService tagService, UserSessionService userSess
             return;
         }
         await client.SendMessage(chatId, messageText, ParseMode.Html,
-            replyMarkup: ReplyMarkupBuilder.TagMarkup(tags, emoji, callBackCommand), cancellationToken: cts);
+            replyMarkup: replyMarkupBuilder.TagMarkup(tags, emoji, callBackCommand), cancellationToken: cts);
 
     }
 

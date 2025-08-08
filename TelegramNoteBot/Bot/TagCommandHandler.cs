@@ -11,7 +11,8 @@ namespace TelegramNoteBot.Bot;
 public class TagCommandHandler(
     TagService tagService,
     UserSessionService userSessionService,
-    TagHelperService tagHelperService)
+    TagHelperService tagHelperService,
+    ReplyMarkupBuilder replyMarkupBuilder)
 {
     private readonly Dictionary<string, Func<ITelegramBotClient, long, User, CancellationToken, Task>>
         _handlers = new();
@@ -49,25 +50,25 @@ public class TagCommandHandler(
         {
             
             await client.SendMessage(chatId, "<b>🔙 Returned to main menu</b>",
-                replyMarkup: ReplyMarkupBuilder.MainMenu(), parseMode: ParseMode.Html, cancellationToken: cts);
+                replyMarkup: replyMarkupBuilder.MainMenu(), parseMode: ParseMode.Html, cancellationToken: cts);
             state.State = BotUserState.None;
         };
         _handlers[BotTagCommands.RemoveTags] = async (client, chatId, user, cts) =>
         {
             await tagHelperService.TrySendTagMarkup(client, user, chatId, "<b>🗑 Select tag to remove:</b>", tags,
-                BotCommandEmojis.X, CallBackCommands.TagDelete, ReplyMarkupBuilder.TagManagementMenu(), cts);
+                BotCommandEmojis.X, CallBackCommands.TagDelete, replyMarkupBuilder.TagManagementMenu(), cts);
         };
         _handlers[AddTagToNoteCommands.Skip] = async (client, chatId, user, cts) =>
         {
             await client.SendMessage(chatId, "<b>🔙 Returned to main menu</b>", ParseMode.Html
-                , replyMarkup: ReplyMarkupBuilder.MainMenu(), cancellationToken: cts);
+                , replyMarkup: replyMarkupBuilder.MainMenu(), cancellationToken: cts);
             userSessionService.Clear(user.Id);
         };
         _handlers[AddTagToNoteCommands.JoinTag] = async (client, chatId, user, cts) =>
         {
 
             await tagHelperService.TrySendTagMarkup(client, user, chatId, "<b>Select up to 3 tags:</b>", tags,
-                BotCommandEmojis.WhiteCheckMark, CallBackCommands.SelectTag, ReplyMarkupBuilder.AddTagToNoteMenu(),
+                BotCommandEmojis.WhiteCheckMark, CallBackCommands.SelectTag, replyMarkupBuilder.AddTagToNoteMenu(),
                 cts);
         };
         _handlers[AddTagToNoteCommands.CreateAndJoin] = async (client, chatId, user, cts) =>

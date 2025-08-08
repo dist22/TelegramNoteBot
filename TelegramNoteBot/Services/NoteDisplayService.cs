@@ -6,7 +6,7 @@ using TelegramNoteBot.Constants;
 
 namespace TelegramNoteBot.Services;
 
-public class NoteDisplayService(NoteService noteService)
+public class NoteDisplayService(NoteService noteService, ReplyMarkupBuilder replyMarkupBuilder)
 {
     public async Task SendNotesListAsync(ITelegramBotClient client, User user, long chatId, string emoji,
         string callBackCommand, CancellationToken cts)
@@ -20,7 +20,7 @@ public class NoteDisplayService(NoteService noteService)
         }
 
         await client.SendMessage(chatId, $"<b>{emoji} Your notes:</b>\nSelect a note to view details.",
-            replyMarkup: ReplyMarkupBuilder.NotesMarkup(notes, emoji, callBackCommand), parseMode: ParseMode.Html,
+            replyMarkup: await replyMarkupBuilder.NotesMarkup(notes, emoji, callBackCommand, user), parseMode: ParseMode.Html,
             cancellationToken: cts);
     }
 
@@ -37,7 +37,7 @@ public class NoteDisplayService(NoteService noteService)
 
         var response = $"<b>🔍 Found {notesList.Count} note(s)</b> for <i>\"{text}\"</i>:\nSelect one to view.";
         await client.SendMessage(chatId, response,
-            replyMarkup: ReplyMarkupBuilder.NotesMarkup(notesList, BotCommandEmojis.I, CallBackCommands.Info),
+            replyMarkup: await replyMarkupBuilder.NotesMarkup(notesList, BotCommandEmojis.I, CallBackCommands.Info, user),
             parseMode: ParseMode.Html,
             cancellationToken: cts);
     }

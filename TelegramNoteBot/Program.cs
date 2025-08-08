@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using StackExchange.Redis;
 using TelegramNoteBot;
 using TelegramNoteBot.Bot;
 using TelegramNoteBot.Data;
@@ -22,7 +23,17 @@ builder.Services.AddScoped<NoteDisplayService>();
 builder.Services.AddScoped<TagService>();
 builder.Services.AddScoped<NoteTagService>();
 builder.Services.AddScoped<TagHelperService>();
+builder.Services.AddScoped<ReplyMarkupBuilder>();
+builder.Services.AddScoped<RedisCallBackStorage>();
 builder.Services.AddHostedService<Worker>();
+
+builder.Services.AddSingleton<IConnectionMultiplexer>(provider =>
+{
+    var cfg = ConfigurationOptions.Parse(builder.Configuration.GetConnectionString("Redis"));
+    cfg.AbortOnConnectFail = false;
+
+    return ConnectionMultiplexer.Connect(cfg);
+});
 
 var host = builder.Build();
 

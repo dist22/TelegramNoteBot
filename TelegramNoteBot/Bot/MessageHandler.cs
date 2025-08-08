@@ -13,7 +13,8 @@ public class MessageHandler(
     NoteDisplayService noteDisplayService,
     TagCommandHandler tagCommandHandler,
     TagService tagService,
-    TagHelperService tagHelperService)
+    TagHelperService tagHelperService, 
+    ReplyMarkupBuilder replyMarkupBuilder)
 {
     private readonly Dictionary<string, Func<ITelegramBotClient, long, User, CancellationToken, Task>>
         _commandHandlers = new();
@@ -41,7 +42,7 @@ public class MessageHandler(
         {
             await client.SendMessage(chatId, "<b>❗ Unknown command</b>\nPlease use the menu below.",
                 ParseMode.Html,
-                replyMarkup: ReplyMarkupBuilder.MainMenu(),
+                replyMarkup: replyMarkupBuilder.MainMenu(),
                 cancellationToken: cts);
         }
         else
@@ -56,7 +57,7 @@ public class MessageHandler(
         {
             await client.SendMessage(chatId,
                 "<b>👋 Welcome to NoteBot!</b>\n\nUse the menu below to manage your notes, tags, and more.",
-                replyMarkup: ReplyMarkupBuilder.MainMenu(), parseMode: ParseMode.Html, cancellationToken: cts);
+                replyMarkup: replyMarkupBuilder.MainMenu(), parseMode: ParseMode.Html, cancellationToken: cts);
         };
 
         _commandHandlers[BotCommands.AddNote] = async (client, chatId, user, cts) =>
@@ -91,20 +92,20 @@ public class MessageHandler(
             var messageText = "🧩 Choose a tag to filter notes:";
 
             await tagHelperService.TrySendTagMarkup(client, user, chatId, messageText, tags, BotCommandEmojis.I,
-                CallBackCommands.FilterByTag, ReplyMarkupBuilder.MainMenu(), cts);
+                CallBackCommands.FilterByTag, replyMarkupBuilder.MainMenu(), cts);
         };
 
         _commandHandlers[BotCommands.AboutDeveloper] = async (client, chatId, user, cts) =>
         {
             await client.SendMessage(chatId, "<b>Tg NoteBot: v.01.7_tag_finally</b>", ParseMode.Html,
                 protectContent: true,
-                replyMarkup: ReplyMarkupBuilder.AboutDeveloper(), cancellationToken: cts);
+                replyMarkup: replyMarkupBuilder.AboutDeveloper(), cancellationToken: cts);
         };
 
         _commandHandlers[BotCommands.ManageTags] = async (client, chatId, user, cts) =>
         {
             await client.SendMessage(chatId, "<b>Tag management menu</b>",
-                replyMarkup: ReplyMarkupBuilder.TagManagementMenu(), parseMode: ParseMode.Html,
+                replyMarkup: replyMarkupBuilder.TagManagementMenu(), parseMode: ParseMode.Html,
                 cancellationToken: cts);
         };
     }
@@ -136,7 +137,7 @@ public class MessageHandler(
                 state.State = BotUserState.None;
                 await client.SendMessage(chatId, "<b>✅ Your note has been added successfully!</b>" +
                                                  "\n<i>Do you want to add tag?</i>", ParseMode.Html,
-                    replyMarkup: ReplyMarkupBuilder.AddTagToNoteMenu(),
+                    replyMarkup: replyMarkupBuilder.AddTagToNoteMenu(),
                     cancellationToken: cts);
                 break;
 
