@@ -1,6 +1,7 @@
 using Telegram.Bot.Types.ReplyMarkups;
 using TelegramNoteBot.Constants;
 using TelegramNoteBot.Models;
+using TelegramNoteBot.Services;
 
 namespace TelegramNoteBot.Bot;
 
@@ -25,14 +26,23 @@ public static class ReplyMarkupBuilder
             [new KeyboardButton(AddTagToNoteCommands.JoinTag), new KeyboardButton(AddTagToNoteCommands.CreateAndJoin)],
             [new  KeyboardButton(AddTagToNoteCommands.Skip)]
         ]) { ResizeKeyboard = true };
-    
-    public static InlineKeyboardMarkup NotesMarkup(IEnumerable<Note> notes, string emoji, string callBackCommand) 
-        => new (notes.Select(n => new[]
-            {
-                InlineKeyboardButton.WithCallbackData($"{emoji} {n.Title}", $"{callBackCommand}|{n.Id}")
-            })
-            .ToArray()
-        );
+
+    public static InlineKeyboardMarkup NotesMarkup(IEnumerable<Note> notes, string emoji, string callBackCommand)
+    {
+
+        var buttons = new List<InlineKeyboardButton[]>();
+        buttons.Add([
+            InlineKeyboardButton.WithCallbackData(SortNotesCommands.SortAsc, $"{CallBackCommands.SortNoteAsc}|{1}"),
+            InlineKeyboardButton.WithCallbackData(SortNotesCommands.SortDesc, $"{CallBackCommands.SortNoteDesc}|{0}")
+        ]);
+        
+        buttons.AddRange(notes.Select( n => new []
+        {
+            InlineKeyboardButton.WithCallbackData($"{emoji} {n.Title}", $"{callBackCommand}|{n.Id}")
+        }).ToArray());
+
+        return new InlineKeyboardMarkup(buttons);
+    }
 
     public static InlineKeyboardMarkup TagMarkup(IEnumerable<Tag> tags, string emoji, string callBackCommand)
         => new(tags.Select(t => 
