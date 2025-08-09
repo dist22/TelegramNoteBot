@@ -44,6 +44,7 @@ public class MessageHandler(
                 ParseMode.Html,
                 replyMarkup: replyMarkupBuilder.MainMenu(),
                 cancellationToken: cts);
+            userSessionService.Clear(user.Id);
         }
         else
         {
@@ -97,7 +98,7 @@ public class MessageHandler(
 
         _commandHandlers[BotCommands.AboutDeveloper] = async (client, chatId, user, cts) =>
         {
-            await client.SendMessage(chatId, "<b>Tg NoteBot: v.01.7_tag_finally</b>", ParseMode.Html,
+            await client.SendMessage(chatId, "<b>Tg NoteBot: v.01.9_pre-realise</b>", ParseMode.Html,
                 protectContent: true,
                 replyMarkup: replyMarkupBuilder.AboutDeveloper(), cancellationToken: cts);
         };

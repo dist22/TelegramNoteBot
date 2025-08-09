@@ -32,8 +32,8 @@ public class ReplyMarkupBuilder(RedisCallBackStorage redisCallBackStorage)
     {
         var buttons = new List<InlineKeyboardButton[]>();
         buttons.Add([
-            InlineKeyboardButton.WithCallbackData(SortNotesCommands.SortAsc, $"{await CreateCallBackKeyAsync(user, 0, CallBackCommands.SortNoteAsc, emoji)}"),
-            InlineKeyboardButton.WithCallbackData(SortNotesCommands.SortDesc, $"{await CreateCallBackKeyAsync(user, 0, CallBackCommands.SortNoteDesc, emoji, true)}")
+            InlineKeyboardButton.WithCallbackData(SortNotesCommands.SortAsc, $"{await CreateCallBackKeyAsync(user, 0, CallBackCommands.SortNoteAsc,  emoji, callBackCommand)}"),
+            InlineKeyboardButton.WithCallbackData(SortNotesCommands.SortDesc, $"{await CreateCallBackKeyAsync(user, 0, CallBackCommands.SortNoteDesc,  emoji,  callBackCommand, true)}")
         ]);
 
         var notesButtons = await Task.WhenAll(notes.Select(async n =>
@@ -50,23 +50,30 @@ public class ReplyMarkupBuilder(RedisCallBackStorage redisCallBackStorage)
         return new InlineKeyboardMarkup(buttons);
     }
 
-    public InlineKeyboardMarkup TagMarkup(IEnumerable<Tag> tags, string emoji, string callBackCommand)
-        => new(tags.Select(t => 
-                InlineKeyboardButton.WithCallbackData($"{emoji} {t.Name}",$"{callBackCommand}|{t.Id}")
-            ).Chunk(2).Select(row => row.ToArray())
-        );
+    public async Task<InlineKeyboardMarkup> TagMarkup(IEnumerable<Tag> tags, string emoji, string callBackCommand, User user)
+    {
+        var tagButtons = await Task.WhenAll(tags.Select(async t =>
+        {
+            var key = await CreateCallBackKeyAsync(user, t.Id, callBackCommand, emoji);
+            return InlineKeyboardButton.WithCallbackData($"{emoji} {t.Name}", $"{key}");
+        }));
+        
+        return new InlineKeyboardMarkup(tagButtons.Chunk(2));
+    }
     public InlineKeyboardButton AboutDeveloper()
         => new ("My GitHub", "https://github.com/dist22");
 
-    private async Task<string> CreateCallBackKeyAsync(User user, int parsedId, string callBackCommand, string emoji, bool decs = false)
+    private async Task<string> CreateCallBackKeyAsync(User user, int parsedId, string callBackCommand, string emoji,
+        string reservedCommand = "no", bool desc = false)
     {
-        var cbData = new NoteCallBackData
+        var cbData = new CallBackData
         {
             User = user,
-            NoteId = parsedId,
+            ParsedId = parsedId,
             CallBackCommand = callBackCommand,
+            ReservedCommand = reservedCommand,
             Emoji = emoji,
-            Desc = true
+            Desc = desc
         };
         
         return await redisCallBackStorage.StoreCallBackAsync(cbData);

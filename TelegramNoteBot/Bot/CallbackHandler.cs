@@ -17,10 +17,16 @@ public class CallbackHandler
     private readonly TagHelperService _tagHelperService;
     private readonly ReplyMarkupBuilder _replyMarkupBuilder;
     private readonly RedisCallBackStorage _redisCallBackStorage;
-    private readonly Dictionary<string, Func<long, int, NoteCallBackData, ITelegramBotClient, CancellationToken, Task>>
+    private readonly Dictionary<string, Func<CallBackDataContext, Task>>
         _handlers;
     
-    public CallbackHandler(NoteService noteService, UserSessionService userSessionService, TagService tagService, TagHelperService tagHelperService, ReplyMarkupBuilder replyMarkupBuilder, RedisCallBackStorage redisCallBackStorage)
+    public CallbackHandler(
+        NoteService noteService, 
+        UserSessionService userSessionService, 
+        TagService tagService, 
+        TagHelperService tagHelperService, 
+        ReplyMarkupBuilder replyMarkupBuilder, 
+        RedisCallBackStorage redisCallBackStorage)
     {
         _noteService = noteService;
         _userSessionService = userSessionService;
@@ -46,37 +52,38 @@ public class CallbackHandler
     {
         var chatId = callbackQuery.Message.Chat.Id;
         var messageId = callbackQuery.Message.MessageId;
-        var user = callbackQuery.From;
+        
 
         var cbData = await _redisCallBackStorage.GetCallBackAsync(callbackQuery.Data);
-        
+
         if (cbData == null)
+        {
+            await client.AnswerCallbackQuery(callbackQuery.Id, "Command not found or out of date ❌", cancellationToken: cts);
             return;
+        }
 
         if (_handlers.TryGetValue(cbData.CallBackCommand, out var handler))
-        {
-            await handler (chatId, messageId, cbData,client, cts);
-        }
+            await handler (new CallBackDataContext(chatId, messageId, cbData, client, cts));
     }
 
-    private async Task HandleSortNoteAsync(long chatId, int messageId, NoteCallBackData noteCallBackData, ITelegramBotClient client, CancellationToken cts)
+    private async Task HandleSortNoteAsync(CallBackDataContext callBackDataContext)
     {
-        var notes = await _noteService.GetSortedAsync(noteCallBackData.User.Id, noteCallBackData.Desc);
-        await client.SendMessage(chatId, "text", replyMarkup: await _replyMarkupBuilder.NotesMarkup(notes, 
-            noteCallBackData.Emoji, noteCallBackData.CallBackCommand, noteCallBackData.User), cancellationToken:cts);
+        var notes = await _noteService.GetSortedAsync(callBackDataContext.callBackData.User.Id, callBackDataContext.callBackData.Desc);
+        await callBackDataContext.client.EditMessageReplyMarkup(callBackDataContext.chatId, callBackDataContext.messageId, replyMarkup: await _replyMarkupBuilder.NotesMarkup(notes, 
+            callBackDataContext.callBackData.Emoji, callBackDataContext.callBackData.ReservedCommand, callBackDataContext.callBackData.User), cancellationToken:callBackDataContext.cts);
     }
 
-    private async Task HandleDeleteNoteAsync(long chatId, int messageId, NoteCallBackData noteCallBackData, ITelegramBotClient client, CancellationToken cts)
+    private async Task HandleDeleteNoteAsync(CallBackDataContext callBackDataContext)
     {
-        var response = await _noteService.DeleteNote(noteCallBackData.User.Id, noteCallBackData.NoteId)
+        var response = await _noteService.DeleteNote(callBackDataContext.callBackData.User.Id, callBackDataContext.callBackData.ParsedId)
             ? "<b>✅ Note deleted successfully.</b>"
             : "<b>❌ Failed to delete the note.</b>";
-        await client.EditMessageText(chatId, messageId, response, ParseMode.Html, cancellationToken: cts);
+        await callBackDataContext.client.EditMessageText(callBackDataContext.chatId, callBackDataContext.messageId, response, ParseMode.Html, cancellationToken: callBackDataContext.cts);
     }
 
-    private async Task HandleInfoNoteAsync(long chatId, int messageId, NoteCallBackData noteCallBackData, ITelegramBotClient client, CancellationToken cts)
+    private async Task HandleInfoNoteAsync(CallBackDataContext callBackDataContext)
     {
-        var note = await _noteService.GetNote(noteCallBackData.User.Id, noteCallBackData.NoteId);
+        var note = await _noteService.GetNote(callBackDataContext.callBackData.User.Id, callBackDataContext.callBackData.ParsedId);
 
         var tags = note?.NoteTags
             .Select(n => n.Tag.Name)
@@ -95,41 +102,49 @@ public class CallbackHandler
 
                              {formattedTags}
                              """;
-        await client.EditMessageText(chatId, messageId, formattedNote, ParseMode.Html,
-            cancellationToken: cts);
+        await callBackDataContext.client.EditMessageText(callBackDataContext.chatId, callBackDataContext.messageId, formattedNote, ParseMode.Html,
+            cancellationToken: callBackDataContext.cts);
     }
 
-    private async Task HandleTagDeleteAsync(long chatId, int messageId, NoteCallBackData noteCallBackData, ITelegramBotClient client, CancellationToken cts)
+    private async Task HandleTagDeleteAsync(CallBackDataContext callBackDataContext)
     {
-        var response = await _tagService.DeleteTag(noteCallBackData.NoteId, noteCallBackData.User.Id)
+        var response = await _tagService.DeleteTag(callBackDataContext.callBackData.ParsedId, callBackDataContext.callBackData.User.Id)
             ? "<b>✅ Tag successfully deleted.</b>"
             : "<b>❌ Failed to delete tag.</b>";
-        await client.EditMessageText(chatId, messageId, response, ParseMode.Html, cancellationToken: cts);
+        await callBackDataContext.client.EditMessageText(callBackDataContext.chatId, callBackDataContext.messageId, response, ParseMode.Html, cancellationToken: callBackDataContext.cts);
     }
 
-    private async Task HandleSelectTagAsync(long chatId, int messageId, NoteCallBackData noteCallBackData, ITelegramBotClient client, CancellationToken cts)
+    private async Task HandleSelectTagAsync(CallBackDataContext callBackDataContext)
     {
-        var state = _userSessionService.GetOrCreate(noteCallBackData.User.Id);
-        var tag = await _tagService.GetTagAsync(noteCallBackData.User.Id, noteCallBackData.NoteId);
+        var state = _userSessionService.GetOrCreate(callBackDataContext.callBackData.User.Id);
+        var tag = await _tagService.GetTagAsync(callBackDataContext.callBackData.User.Id, callBackDataContext.callBackData.ParsedId);
         if (tag == null) return;
 
         if (state.SelectedTags.All(t => t.Id != tag.Id))
             state.SelectedTags.Push(tag);
 
-        await _tagHelperService.TryAddTagToNoteAsync(client, chatId, noteCallBackData.User, state, cts);
+        await _tagHelperService.TryAddTagToNoteAsync(callBackDataContext.client, callBackDataContext.chatId, callBackDataContext.callBackData.User, state, callBackDataContext.cts);
     }
 
-    private async Task HandleFilterByTagAsync(long chatId, int messageId, NoteCallBackData noteCallBackData, ITelegramBotClient client, CancellationToken cts)
+    private async Task HandleFilterByTagAsync(CallBackDataContext callBackDataContext)
     {
-        var notes = await _noteService.GetNoteByTagAsync(noteCallBackData.User.Id, noteCallBackData.NoteId);
+        var notes = await _noteService.GetNoteByTagAsync(callBackDataContext.callBackData.User.Id, callBackDataContext.callBackData.ParsedId);
         if (!notes.Any())
         {
-            await client.EditMessageText(chatId, messageId, "<b>No notes found with this tag.</b>",
-                ParseMode.Html, cancellationToken: cts);
+            await callBackDataContext.client.EditMessageText(callBackDataContext.chatId, callBackDataContext.messageId, "<b>No notes found with this tag.</b>",
+                ParseMode.Html, cancellationToken: callBackDataContext.cts);
             return;
         }
-        await client.EditMessageText(chatId, messageId, $"🔍 Found {notes.Count} note(s) with this tag:",
-            ParseMode.Html, replyMarkup: await _replyMarkupBuilder.NotesMarkup(notes, BotCommandEmojis.I, CallBackCommands.Info, noteCallBackData.User),
-            cancellationToken: cts);
+        await callBackDataContext.client.EditMessageText(callBackDataContext.chatId, callBackDataContext.messageId, $"🔍 Found {notes.Count} note(s) with this tag:",
+            ParseMode.Html, replyMarkup: await _replyMarkupBuilder.NotesMarkup(notes, BotCommandEmojis.I, CallBackCommands.Info, callBackDataContext.callBackData.User),
+            cancellationToken: callBackDataContext.cts);
     }
+    
+    private record CallBackDataContext(
+        long chatId,
+        int messageId,
+        CallBackData callBackData,
+        ITelegramBotClient client,
+        CancellationToken cts);
+    
 }

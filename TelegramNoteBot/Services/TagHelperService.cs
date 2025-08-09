@@ -65,7 +65,7 @@ public class TagHelperService(TagService tagService, UserSessionService userSess
             return;
         }
         await client.SendMessage(chatId, messageText, ParseMode.Html,
-            replyMarkup: replyMarkupBuilder.TagMarkup(tags, emoji, callBackCommand), cancellationToken: cts);
+            replyMarkup: await replyMarkupBuilder.TagMarkup(tags, emoji, callBackCommand, user), cancellationToken: cts);
 
     }
 
