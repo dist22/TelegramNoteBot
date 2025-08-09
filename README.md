@@ -110,9 +110,36 @@ A simple Telegram bot for creating, viewing, sorting, and deleting notes with ta
 ### Main Menu
 ![Main Menu](assets/screenshots/startMessage.jpg)
 
+### Tag Management Menu
+![Tag Management Menu](assets/screenshots/TagMenu.jpg)
+
+### Create Note Example
+![Create Note Example](assets/screenshots/CreateNote.jpg)
+After you have created a note, a menu will pop up in the bot that will allow you to add tags to the note
+This menu offers you to add existing tags or create your own tags, you can skip this action.
+
+### Add Tag to Note
+![Add Tag to Note](assets/screenshots/AddTagToNote.jpg)
+After adding a tag, we see that we can add two more, since the limit is 3 tags per note.
+
 ### Note Example
 ![Note Example](assets/screenshots/NoteExample.jpg)
 
+### View tags
+![View tags](assets/screenshots/viewTags.jpg)
+Here we can see all the tags that we have used in any way. Both by yourself and when creating a note.
+
+### Create tags
+![Create tags](assets/screenshots/adding_tag.jpg)
+The created tag must necessarily begin with #, and they cannot be duplicated.
+
+### Search notes
+![Search notes](assets/screenshots/searchNotes.jpg)
+After entering the keyword, we see how our note was searched. The search is performed both by the title of the note and its context.
+
+### Filtering by tags
+![Filtering by tags](assets/screenshots/filterByTagMenu.jpg)
+A selection menu appears with the tags available to us. By selecting one, we will be shown all the notes where this tag has been added.
 
 ## Contacts
 - Developer: Dmytro Stozhok  
