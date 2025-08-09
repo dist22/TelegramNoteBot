@@ -105,6 +105,14 @@ A simple Telegram bot for creating, viewing, sorting, and deleting notes with ta
     ```bash
     docker compose up --build -d
     ```
+## Screenshots
+
+### Main Menu
+![Main Menu](assets/screenshots/startMessage.jpg)
+
+### Note Example
+![Note Example](assets/screenshots/NoteExample.jpg)
+
 
 ## Contacts
 - Developer: Dmytro Stozhok  
