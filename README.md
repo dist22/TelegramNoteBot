@@ -45,25 +45,65 @@ A simple Telegram bot for creating, viewing, sorting, and deleting notes with ta
 
 ## Running with Docker
 
-- Use `docker-compose.yml` to start PostgreSQL, Redis, and the bot together:
+1. **Clone the repository**  
+   ```bash
+   git clone https://github.com/yourusername/telegram-note-bot.git
+   cd telegram-note-bot
+   ```
+
+- Edit docker-compose.yml
+    Update the environment section in the bot service with your real bot token and database credentials:
     ```bash
-    docker-compose up --build
+    version: "3.9"
+
+    services:
+      bot:
+        build:
+          context: .
+          dockerfile: TelegramNoteBot/Dockerfile
+        container_name: telegram_note_bot
+        depends_on:
+          - db
+          - redis
+        environment:
+          ConnectionStrings__Connection: Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+          Redis__Host: redis
+          Redis__Port: ${REDIS_PORT}
+          BotConfiguration__Token: ${BOT_TOKEN}
+        restart: unless-stopped
+    
+      db:
+        image: postgres:latest
+        container_name: telegram_note_pg
+        environment:
+          POSTGRES_USER: ${POSTGRES_USER}
+          POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+          POSTGRES_DB: ${POSTGRES_DB}
+        ports:
+          - "${POSTGRES_PORT}:5432"
+        volumes:
+          - pgdata:/var/lib/postgresql/data
+    
+      redis:
+        image: redis:7-alpine
+        container_name: telegram_note_redis
+        restart: unless-stopped
+        ports:
+          - "${REDIS_PORT}:6379"
+        volumes:
+          - redis_data:/data
+        command: redis-server --appendonly yes
+    
+    volumes:
+      pgdata:
+        driver: local
+      redis_data:
+        driver: local
     ```
-
-- Set the bot token via environment variable in your `docker-compose.yml`:
-    ```yaml
-    environment:
-      - TelegramBot__Token=your_bot_token_here
+  - Build and start services
+    ```bash
+    docker compose up --build -d
     ```
-
-## How to Use the Bot
-
-- Send commands in Telegram:
-    - `/add` — add a note
-    - `/mynotes` — view notes
-    - `/delete` — delete a note
-    - `/filtertag` — filter notes by tag
-    - `/tags` — manage tags
 
 ## Contacts
 - Developer: Dmytro Stozhok  
