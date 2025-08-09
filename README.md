@@ -29,11 +29,12 @@ A simple Telegram bot for creating, viewing, sorting, and deleting notes with ta
 3. Configure database connection in `appsettings.json`:
     ```json
     "ConnectionStrings": {
-      "Connection": "Host=localhost;Port=YOU_PORT;Database=YOU_DB_NAME;Username=YOU_USERNAME;Password=YOU_PASSWORD"
-    },
-    "Redis": {
-      "ConnectionString": "redis:YOU_PORT"
-    }
+        "Redis" : "redis:YOU_PORT",
+        "Connection" : "Host=YOU_HOST;Port=YOU_PORT;Database=YOU_DATABASE;Username=YOU_USERNAME;Password=YOU_PASSWORD"
+      },
+      "Telegram": {
+        "Token" : "YOU_BOT_TOKEN"
+      }
     ```
 
 4. Start PostgreSQL and Redis locally or using Docker.
