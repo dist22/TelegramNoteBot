@@ -56,7 +56,7 @@ A simple Telegram bot for creating, viewing, sorting, and deleting notes with ta
     Update the environment section in the bot service with your real bot token and database credentials:
     ```bash
     version: "3.9"
-
+    
     services:
       bot:
         build:
@@ -67,21 +67,21 @@ A simple Telegram bot for creating, viewing, sorting, and deleting notes with ta
           - db
           - redis
         environment:
-          ConnectionStrings__Connection: Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+          ConnectionStrings__Connection: Host=db;Port=YOU_PORT;Database=YOU_DATABASE;Username=YOU_USERNAME;Password=YOU_PASSWORD
           Redis__Host: redis
-          Redis__Port: ${REDIS_PORT}
-          BotConfiguration__Token: ${BOT_TOKEN}
+          Redis__Port: YOU_REDIS_PORT
+          BotConfiguration__Token: YOU_BOT_TOKEN
         restart: unless-stopped
     
       db:
         image: postgres:latest
         container_name: telegram_note_pg
         environment:
-          POSTGRES_USER: ${POSTGRES_USER}
-          POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-          POSTGRES_DB: ${POSTGRES_DB}
+          POSTGRES_USER: YOU_USERNAME
+          POSTGRES_PASSWORD: YOU_PASSWORD
+          POSTGRES_DB: YOU_DATABASE
         ports:
-          - "${POSTGRES_PORT}:5432"
+          - "${YOU_PASSWORD}:5432"
         volumes:
           - pgdata:/var/lib/postgresql/data
     
@@ -90,7 +90,7 @@ A simple Telegram bot for creating, viewing, sorting, and deleting notes with ta
         container_name: telegram_note_redis
         restart: unless-stopped
         ports:
-          - "${REDIS_PORT}:6379"
+          - "${YOU_REDIS_PORT}:6379"
         volumes:
           - redis_data:/data
         command: redis-server --appendonly yes
